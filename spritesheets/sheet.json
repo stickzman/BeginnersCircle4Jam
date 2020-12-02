@@ -1,0 +1,20 @@
+{"frames": {
+
+"player.png":
+{
+	"frame": {"x":0,"y":0,"w":100,"h":100},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":100,"h":100},
+	"sourceSize": {"w":100,"h":100}
+}},
+"meta": {
+	"app": "https://www.codeandweb.com/texturepacker",
+	"version": "1.0",
+	"image": "sheet.png",
+	"format": "RGBA8888",
+	"size": {"w":100,"h":100},
+	"scale": "1",
+	"smartupdate": "$TexturePacker:SmartUpdate:5feb0bf616e0049959a251b0d1cd4244:df632c96afa8ea9aecbb0b591301eb8f:9c44ecd7e9a522007eaff2949095bc1d$"
+}
+}
