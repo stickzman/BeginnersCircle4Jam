@@ -3,8 +3,8 @@
   "removeComments": true,
   "preserveConstEnums": true,
   "sourceMap": true,
-  "outFile": "test.js",
-  "target": "es5"
+  "outFile": "index.js",
+  "target": "es2015"
 },
 "compileOnSave": true,
 "include": ["./ts/**/*.ts"]

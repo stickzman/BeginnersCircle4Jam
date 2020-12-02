@@ -2,9 +2,9 @@
 
 class Camera {
     readonly renderer: PIXI.Renderer
-    readonly stage: PIXI.Container
     readonly width: number
     readonly height: number
+    static stage: PIXI.Container
     private readonly rotationLayer: PIXI.Container
 
     constructor(selector = "body", x = 0, y = 0) {
@@ -15,33 +15,31 @@ class Camera {
         this.width = this.renderer.width
         this.height = this.renderer.height
 
-        this.stage = new PIXI.Container()
+        Camera.stage = new PIXI.Container()
         this.rotationLayer = new PIXI.Container()
-        this.rotationLayer.addChild(this.stage)
+        this.rotationLayer.addChild(Camera.stage)
         this.rotationLayer.pivot.set(this.renderer.width/2, this.renderer.height/2)
         this.rotationLayer.x = this.renderer.width/2
         this.rotationLayer.y = this.renderer.height/2
 
         this.x = x
         this.y = y
-
-        Sprite.stage = this.stage // Set to global stage for creating sprites
     }
 
     set x(x: number) {
-        this.stage.x = this.width/2 - x
+        Camera.stage.x = this.width/2 - x
     }
 
     get x(): number {
-        return this.width/2 - this.stage.x
+        return this.width/2 - Camera.stage.x
     }
 
     set y(y: number) {
-        this.stage.y = this.height/2 - y
+        Camera.stage.y = this.height/2 - y
     }
 
     get y(): number {
-        return this.height/2 - this.stage.y
+        return this.height/2 - Camera.stage.y
     }
 
     set angle(a: number) {

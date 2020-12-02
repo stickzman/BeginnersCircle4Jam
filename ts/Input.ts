@@ -1,3 +1,5 @@
+/// <reference path="main.ts" />
+
 var UP: boolean, DOWN: boolean, LEFT: boolean, RIGHT: boolean
 var mouseX: number = 0
 var mouseY: number = 0
