@@ -158,20 +158,11 @@ PIXI.Loader.shared
 let player;
 function init(loader, resources) {
     const sheet = resources["sheet"].spritesheet;
-    let platform = new PIXI.Graphics();
-    platform.lineStyle(2, 0x000000000);
-    platform.beginFill(0xFFFFFF);
-    platform.drawCircle(0, 0, cam.height / 2 - 10);
-    platform.endFill();
-    stage.addChild(platform);
-    new Collider(new GameObject("col1"), 100, 200, 10);
-    new Collider(new GameObject("col2"), 10, -100, -200);
+    new Platform();
     player = new Player(sheet.textures["player.png"]);
-    player.collider.on("enter", col => {
-        console.log("enter!", col.gameObj.tag);
-    });
     player.collider.on("exit", col => {
-        console.log("exit!", col.gameObj.tag);
+        if (col.gameObj.tag === "platform")
+            console.log("YOU DIED");
     });
     window.requestAnimationFrame(tick);
 }
@@ -231,10 +222,15 @@ class Player extends GameObject {
     constructor(img) {
         super("player");
         this.speed = 5;
+        this.dead = false;
         this._x = 0;
         this._y = 0;
         this.sprite = new Sprite(img);
         this.collider = new Collider(this, 45);
+        this.collider.on("exit", (col) => {
+            if (col.gameObj.tag === "platform")
+                this.dead = true;
+        });
     }
     set x(x) {
         this._x = x;
@@ -258,6 +254,13 @@ class Player extends GameObject {
         this.sprite.rotation = rotation;
     }
     update() {
+        if (this.dead) {
+            this.sprite.scale.set(this.sprite.scale.x - 0.01);
+            if (this.sprite.scale.x <= 0) {
+                this.respawn();
+            }
+            return;
+        }
         if (globalThis.UP)
             player.y -= player.speed;
         if (globalThis.DOWN)
@@ -267,6 +270,24 @@ class Player extends GameObject {
         if (globalThis.RIGHT)
             player.x += player.speed;
         player.lookAt(globalThis.mouseX, globalThis.mouseY);
+    }
+    respawn() {
+        this.dead = false;
+        this.x = 0;
+        this.y = 0;
+        this.sprite.scale.set(1);
+    }
+}
+class Platform extends GameObject {
+    constructor() {
+        super("platform");
+        const graphic = new PIXI.Graphics();
+        graphic.lineStyle(2, 0x000000000);
+        graphic.beginFill(0xFFFFFF);
+        graphic.drawCircle(0, 0, cam.height / 2 - 10);
+        graphic.endFill();
+        Camera.stage.addChild(graphic);
+        new Collider(this, cam.height / 2 - 20);
     }
 }
 //# sourceMappingURL=index.js.map
