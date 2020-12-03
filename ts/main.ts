@@ -29,7 +29,7 @@ function tick(time: number) {
     deltaTime = time - lastTimestamp
 
     Collider.update()
-    player.update(deltaTime)
+    player.update()
 
     cam.render()
 

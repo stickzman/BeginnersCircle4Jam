@@ -156,7 +156,7 @@ class Collider {
     }
 }
 Collider.allColliders = [];
-Collider.debug = true;
+Collider.debug = false;
 class GameObject {
     constructor(tag = "") {
         this.tag = tag;
@@ -184,12 +184,12 @@ var deltaTime;
 function tick(time) {
     deltaTime = time - lastTimestamp;
     Collider.update();
-    player.update(deltaTime);
+    player.update();
     cam.render();
     lastTimestamp = time;
     window.requestAnimationFrame(tick);
 }
-var UP, DOWN, LEFT, RIGHT;
+var UP, DOWN, LEFT, RIGHT, LEFT_MOUSE, RIGHT_MOUSE;
 var mouseX = 0;
 var mouseY = 0;
 window.addEventListener("keydown", e => {
@@ -224,9 +224,24 @@ window.addEventListener("keyup", e => {
             break;
     }
 });
-document.querySelector("canvas").addEventListener("mousemove", e => {
-    globalThis.mouseX = e.offsetX;
-    globalThis.mouseY = e.offsetY;
+window.addEventListener("mousemove", e => {
+    globalThis.mouseX = e.clientX;
+    globalThis.mouseY = e.clientY;
+});
+window.addEventListener("mousedown", e => {
+    if (e.which === 1)
+        globalThis.LEFT_MOUSE = true;
+    if (e.which === 3)
+        globalThis.RIGHT_MOUSE = true;
+});
+window.addEventListener("mouseup", e => {
+    if (e.which === 1)
+        globalThis.LEFT_MOUSE = false;
+    if (e.which === 3)
+        globalThis.RIGHT_MOUSE = false;
+});
+document.querySelector("canvas").addEventListener("contextmenu", e => {
+    e.preventDefault();
 });
 class Platform extends GameObject {
     constructor() {
@@ -244,16 +259,17 @@ var PlayerState;
 (function (PlayerState) {
     PlayerState[PlayerState["DEAD"] = 0] = "DEAD";
     PlayerState[PlayerState["MOVE"] = 1] = "MOVE";
+    PlayerState[PlayerState["AIM"] = 2] = "AIM";
+    PlayerState[PlayerState["DASH"] = 3] = "DASH";
 })(PlayerState || (PlayerState = {}));
 class Player extends GameObject {
-    constructor(img, radius = 25) {
+    constructor(img, radius = 15) {
         super("player");
-        this.speed = 350;
+        this.speed = 5;
         this.state = PlayerState.MOVE;
-        this.velocity = {
-            x: 0,
-            y: 0
-        };
+        this.velocity = new Vector(0, 0);
+        this.friction = .9;
+        this.maxDashMag = 50;
         this._x = 0;
         this._y = 0;
         this.sprite = new Sprite(img);
@@ -291,16 +307,19 @@ class Player extends GameObject {
     get radius() {
         return this._r;
     }
+    get screenPos() {
+        return this.sprite.getGlobalPosition();
+    }
     lookAt(x, y) {
-        const p = this.sprite.getGlobalPosition();
+        const p = this.screenPos;
         const rotation = Math.atan2(x - p.x, p.y - y);
         this.sprite.rotation = rotation;
     }
-    update(deltaTime) {
-        deltaTime /= 1000;
+    update() {
         switch (this.state) {
             case PlayerState.DEAD: {
                 this.radius -= 0.5;
+                this.sprite.angle += 3;
                 if (this.radius <= 0) {
                     this.respawn();
                 }
@@ -313,30 +332,89 @@ class Player extends GameObject {
                 else if (globalThis.DOWN) {
                     this.velocity.y = player.speed;
                 }
-                else {
-                    this.velocity.y = 0;
-                }
                 if (globalThis.LEFT) {
                     this.velocity.x = -player.speed;
                 }
                 else if (globalThis.RIGHT) {
                     this.velocity.x = player.speed;
                 }
-                else {
-                    this.velocity.x = 0;
+                if (globalThis.LEFT_MOUSE) {
+                    this.state = PlayerState.AIM;
                 }
-                this.x += this.velocity.x * deltaTime;
-                this.y += this.velocity.y * deltaTime;
-                player.lookAt(globalThis.mouseX, globalThis.mouseY);
                 break;
             }
+            case PlayerState.AIM: {
+                if (!globalThis.LEFT_MOUSE) {
+                    const p = this.screenPos;
+                    const v = Vector.fromPoints(p.x, p.y, globalThis.mouseX, globalThis.mouseY);
+                    this.velocity.set(v.normalize().mult(this.maxDashMag));
+                    this.state = PlayerState.DASH;
+                }
+                break;
+            }
+            case PlayerState.DASH: {
+                if (globalThis.LEFT_MOUSE) {
+                    this.state = PlayerState.AIM;
+                }
+                else if (this.velocity.mag < this.speed / 2) {
+                    this.state = PlayerState.MOVE;
+                }
+            }
         }
+        this.x += this.velocity.x;
+        this.y += this.velocity.y;
+        this.velocity.x *= this.friction;
+        this.velocity.y *= this.friction;
+        if (Math.abs(this.velocity.x) < 0.1)
+            this.velocity.x = 0;
+        if (Math.abs(this.velocity.y) < 0.1)
+            this.velocity.y = 0;
+        if (this.state !== PlayerState.DEAD)
+            player.lookAt(globalThis.mouseX, globalThis.mouseY);
     }
     respawn() {
         this.state = PlayerState.MOVE;
         this.x = 0;
         this.y = 0;
+        this.velocity.reset();
         this.radius = this.initialRadius;
+    }
+}
+class Vector {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.initialX = x;
+        this.initialY = y;
+    }
+    reset() {
+        this.x = this.initialX;
+        this.y = this.initialY;
+        return this;
+    }
+    normalize() {
+        this.div(this.mag);
+        return this;
+    }
+    mult(n) {
+        this.x *= n;
+        this.y *= n;
+        return this;
+    }
+    div(n) {
+        this.x /= n;
+        this.y /= n;
+        return this;
+    }
+    get mag() {
+        return Math.sqrt(Math.pow(this.x, 2) + Math.pow(this.y, 2));
+    }
+    set(v) {
+        this.x = v.x;
+        this.y = v.y;
+    }
+    static fromPoints(x1, y1, x2, y2) {
+        return new Vector(x2 - x1, y2 - y1);
     }
 }
 //# sourceMappingURL=index.js.map
