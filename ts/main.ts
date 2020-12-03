@@ -9,6 +9,7 @@ PIXI.Loader.shared
     .load(init)
 
 let player
+let lastTimestamp: number
 function init(loader, resources) {
     const sheet = resources["sheet"].spritesheet
 
@@ -19,16 +20,19 @@ function init(loader, resources) {
         if (col.gameObj.tag === "platform") console.log("YOU DIED")
     })
 
+    lastTimestamp = performance.now()
     window.requestAnimationFrame(tick)
 }
 
-let frameCount = 0
-function tick() {
-    ++frameCount
+var deltaTime
+function tick(time: number) {
+    deltaTime = time - lastTimestamp
 
     Collider.update()
-    player.update()
+    player.update(deltaTime)
 
     cam.render()
+
+    lastTimestamp = time
     window.requestAnimationFrame(tick)
 }

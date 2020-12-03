@@ -9,7 +9,7 @@ class Camera {
 
     constructor(selector = "body", x = 0, y = 0) {
         this.renderer = PIXI.autoDetectRenderer()
-        this.renderer.backgroundColor = 0x000000000
+        this.renderer.backgroundColor = 0x000000
         document.querySelector(selector).appendChild(this.renderer.view)
 
         this.width = this.renderer.width

@@ -42,8 +42,14 @@ class Anim {
     }
 }
 class Sprite extends PIXI.Sprite {
-    constructor(texture) {
+    constructor(texture, width, height) {
         super(texture);
+        if (width !== undefined) {
+            if (height === undefined)
+                height = width;
+            this.width = width;
+            this.height = height;
+        }
         this.pivot.set(this.width / 2, this.height / 2);
         Camera.stage.addChild(this);
     }
@@ -51,7 +57,7 @@ class Sprite extends PIXI.Sprite {
 class Camera {
     constructor(selector = "body", x = 0, y = 0) {
         this.renderer = PIXI.autoDetectRenderer();
-        this.renderer.backgroundColor = 0x000000000;
+        this.renderer.backgroundColor = 0x000000;
         document.querySelector(selector).appendChild(this.renderer.view);
         this.width = this.renderer.width;
         this.height = this.renderer.height;
@@ -118,6 +124,7 @@ class Collider {
             if (Collider.debug) {
                 col1.visual.x = col1.x;
                 col1.visual.y = col1.y;
+                col1.visual.width = col1.visual.height = col1.radius * 2;
             }
             for (const col2 of Collider.allColliders) {
                 if (col1 === col2)
@@ -150,12 +157,18 @@ class Collider {
 }
 Collider.allColliders = [];
 Collider.debug = true;
+class GameObject {
+    constructor(tag = "") {
+        this.tag = tag;
+    }
+}
 const cam = new Camera();
 const stage = Camera.stage;
 PIXI.Loader.shared
     .add("sheet", "./spritesheets/sheet.json")
     .load(init);
 let player;
+let lastTimestamp;
 function init(loader, resources) {
     const sheet = resources["sheet"].spritesheet;
     new Platform();
@@ -164,14 +177,16 @@ function init(loader, resources) {
         if (col.gameObj.tag === "platform")
             console.log("YOU DIED");
     });
+    lastTimestamp = performance.now();
     window.requestAnimationFrame(tick);
 }
-let frameCount = 0;
-function tick() {
-    ++frameCount;
+var deltaTime;
+function tick(time) {
+    deltaTime = time - lastTimestamp;
     Collider.update();
-    player.update();
+    player.update(deltaTime);
     cam.render();
+    lastTimestamp = time;
     window.requestAnimationFrame(tick);
 }
 var UP, DOWN, LEFT, RIGHT;
@@ -213,24 +228,44 @@ document.querySelector("canvas").addEventListener("mousemove", e => {
     globalThis.mouseX = e.offsetX;
     globalThis.mouseY = e.offsetY;
 });
-class GameObject {
-    constructor(tag = "") {
-        this.tag = tag;
+class Platform extends GameObject {
+    constructor() {
+        super("platform");
+        const graphic = new PIXI.Graphics();
+        graphic.lineStyle(2, 0x000000000);
+        graphic.beginFill(0xFFFFFF);
+        graphic.drawCircle(0, 0, cam.height / 2 - 10);
+        graphic.endFill();
+        Camera.stage.addChild(graphic);
+        new Collider(this, cam.height / 2 - 12);
     }
 }
+var PlayerState;
+(function (PlayerState) {
+    PlayerState[PlayerState["DEAD"] = 0] = "DEAD";
+    PlayerState[PlayerState["MOVE"] = 1] = "MOVE";
+})(PlayerState || (PlayerState = {}));
 class Player extends GameObject {
-    constructor(img) {
+    constructor(img, radius = 25) {
         super("player");
-        this.speed = 5;
-        this.dead = false;
+        this.speed = 350;
+        this.state = PlayerState.MOVE;
+        this.velocity = {
+            x: 0,
+            y: 0
+        };
         this._x = 0;
         this._y = 0;
         this.sprite = new Sprite(img);
-        this.collider = new Collider(this, 45);
+        this.collider = new Collider(this, radius);
         this.collider.on("exit", (col) => {
-            if (col.gameObj.tag === "platform")
-                this.dead = true;
+            if (col.gameObj.tag === "platform") {
+                this.state = PlayerState.DEAD;
+                this.initialRadius = this.radius;
+            }
         });
+        this.radius = radius;
+        this.initialRadius = radius;
     }
     set x(x) {
         this._x = x;
@@ -248,46 +283,60 @@ class Player extends GameObject {
     get y() {
         return this._y;
     }
+    set radius(r) {
+        this._r = r;
+        this.sprite.width = this.sprite.height = r * 2;
+        this.collider.radius = r;
+    }
+    get radius() {
+        return this._r;
+    }
     lookAt(x, y) {
         const p = this.sprite.getGlobalPosition();
         const rotation = Math.atan2(x - p.x, p.y - y);
         this.sprite.rotation = rotation;
     }
-    update() {
-        if (this.dead) {
-            this.sprite.scale.set(this.sprite.scale.x - 0.01);
-            if (this.sprite.scale.x <= 0) {
-                this.respawn();
+    update(deltaTime) {
+        deltaTime /= 1000;
+        switch (this.state) {
+            case PlayerState.DEAD: {
+                this.radius -= 0.5;
+                if (this.radius <= 0) {
+                    this.respawn();
+                }
+                break;
             }
-            return;
+            case PlayerState.MOVE: {
+                if (globalThis.UP) {
+                    this.velocity.y = -player.speed;
+                }
+                else if (globalThis.DOWN) {
+                    this.velocity.y = player.speed;
+                }
+                else {
+                    this.velocity.y = 0;
+                }
+                if (globalThis.LEFT) {
+                    this.velocity.x = -player.speed;
+                }
+                else if (globalThis.RIGHT) {
+                    this.velocity.x = player.speed;
+                }
+                else {
+                    this.velocity.x = 0;
+                }
+                this.x += this.velocity.x * deltaTime;
+                this.y += this.velocity.y * deltaTime;
+                player.lookAt(globalThis.mouseX, globalThis.mouseY);
+                break;
+            }
         }
-        if (globalThis.UP)
-            player.y -= player.speed;
-        if (globalThis.DOWN)
-            player.y += player.speed;
-        if (globalThis.LEFT)
-            player.x -= player.speed;
-        if (globalThis.RIGHT)
-            player.x += player.speed;
-        player.lookAt(globalThis.mouseX, globalThis.mouseY);
     }
     respawn() {
-        this.dead = false;
+        this.state = PlayerState.MOVE;
         this.x = 0;
         this.y = 0;
-        this.sprite.scale.set(1);
-    }
-}
-class Platform extends GameObject {
-    constructor() {
-        super("platform");
-        const graphic = new PIXI.Graphics();
-        graphic.lineStyle(2, 0x000000000);
-        graphic.beginFill(0xFFFFFF);
-        graphic.drawCircle(0, 0, cam.height / 2 - 10);
-        graphic.endFill();
-        Camera.stage.addChild(graphic);
-        new Collider(this, cam.height / 2 - 20);
+        this.radius = this.initialRadius;
     }
 }
 //# sourceMappingURL=index.js.map

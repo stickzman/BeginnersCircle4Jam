@@ -1,20 +1,36 @@
 /// <reference path="./GameObject.ts" />
+enum PlayerState {
+    DEAD,
+    MOVE
+}
 
 class Player extends GameObject {
     sprite: PIXI.Sprite
-    speed: number = 5
+    speed: number = 350
     collider: Collider
-    dead: boolean = false
+    state: PlayerState = PlayerState.MOVE
+    velocity = {
+        x: 0,
+        y: 0
+    }
+
     private _x: number = 0
     private _y: number = 0
+    private _r: number
+    private initialRadius: number
 
-    constructor(img: PIXI.Texture) {
+    constructor(img: PIXI.Texture, radius: number = 25) {
         super("player")
         this.sprite = new Sprite(img)
-        this.collider = new Collider(this, 45)
+        this.collider = new Collider(this, radius)
         this.collider.on("exit", (col: Collider) => {
-            if (col.gameObj.tag === "platform") this.dead = true
+            if (col.gameObj.tag === "platform") {
+                this.state = PlayerState.DEAD
+                this.initialRadius = this.radius
+            }
         })
+        this.radius = radius
+        this.initialRadius = radius
     }
 
     set x(x: number) {
@@ -35,6 +51,15 @@ class Player extends GameObject {
         return this._y
     }
 
+    set radius(r: number) {
+        this._r = r
+        this.sprite.width = this.sprite.height = r * 2
+        this.collider.radius = r
+    }
+    get radius(): number {
+        return this._r
+    }
+
     lookAt(x: number, y: number) {
         // Get player screen cooridinates
         const p = this.sprite.getGlobalPosition()
@@ -43,28 +68,48 @@ class Player extends GameObject {
         this.sprite.rotation = rotation
     }
 
-    update() {
-        if (this.dead) {
-            // Shrink player (like they're falling)
-            this.sprite.scale.set(this.sprite.scale.x - 0.01)
-            if (this.sprite.scale.x <= 0) {
-                this.respawn()
+    update(deltaTime: number) {
+        deltaTime /= 1000 // Convert ms to sec
+
+        switch (this.state) {
+            case PlayerState.DEAD: {
+                // Shrink player (like they're falling)
+                this.radius -= 0.5
+                if (this.radius <= 0) {
+                    this.respawn()
+                }
+                break
             }
-            return
+            case PlayerState.MOVE: {
+                if (globalThis.UP) {
+                    this.velocity.y = -player.speed
+                } else if (globalThis.DOWN) {
+                    this.velocity.y = player.speed
+                } else {
+                    this.velocity.y = 0
+                }
+
+                if (globalThis.LEFT) {
+                    this.velocity.x = -player.speed
+                } else if (globalThis.RIGHT) {
+                    this.velocity.x = player.speed
+                } else {
+                    this.velocity.x = 0
+                }
+
+                this.x += this.velocity.x * deltaTime
+                this.y += this.velocity.y * deltaTime
+
+                player.lookAt(globalThis.mouseX, globalThis.mouseY)
+                break
+            }
         }
-
-        if (globalThis.UP) player.y -= player.speed
-        if (globalThis.DOWN) player.y += player.speed
-        if (globalThis.LEFT) player.x -= player.speed
-        if (globalThis.RIGHT) player.x += player.speed
-
-        player.lookAt(globalThis.mouseX, globalThis.mouseY)
     }
 
     respawn() {
-        this.dead = false
+        this.state = PlayerState.MOVE
         this.x = 0
         this.y = 0
-        this.sprite.scale.set(1)
+        this.radius = this.initialRadius
     }
 }

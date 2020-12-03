@@ -9,6 +9,6 @@ class Platform extends GameObject {
         graphic.endFill()
         Camera.stage.addChild(graphic)
 
-        new Collider(this, cam.height/2-20)
+        new Collider(this, cam.height/2-12)
     }
 }

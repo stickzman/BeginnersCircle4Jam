@@ -35,6 +35,7 @@ class Collider {
             if (Collider.debug) {
                 col1.visual.x = col1.x
                 col1.visual.y = col1.y
+                col1.visual.width = col1.visual.height = col1.radius * 2
             }
 
             for (const col2 of Collider.allColliders) {
