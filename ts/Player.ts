@@ -3,17 +3,21 @@ enum PlayerState {
     DEAD,
     MOVE,
     AIM,
-    DASH
+    DASH,
+    KNOCK_BACK
 }
 
 class Player extends GameObject {
     sprite: PIXI.Sprite
-    speed: number = 5
+    speed: number = 3
     collider: Collider
     state: PlayerState = PlayerState.MOVE
     velocity = new Vector(0, 0)
     friction: number = .9
-    maxDashMag: number = 50
+
+    maxDashMag: number = 30
+    startAimTime: number
+    maxAimTime: number = 900
 
     private _x: number = 0
     private _y: number = 0
@@ -28,6 +32,20 @@ class Player extends GameObject {
             if (col.gameObj.tag === "platform") {
                 this.state = PlayerState.DEAD
                 this.initialRadius = this.radius
+            }
+        })
+        this.collider.on("enter", (col: Collider) => {
+            if (col.gameObj.tag === "enemy") {
+                const e = <Enemy>col.gameObj
+                // TODO: Circle collision resolution/bouncing
+                const collisionVector = Vector.fromPoints(this.collider.x, this.collider.y, col.x, col.y).normalize()
+                const vel = this.velocity.mag
+                // Player rebound velocity
+                this.velocity.set(Vector.mult(collisionVector, -vel/2))
+                // Enemy rebound velocity
+                e.velocity.set(collisionVector.mult(vel))
+
+                this.state = PlayerState.KNOCK_BACK
             }
         })
         this.radius = radius
@@ -99,6 +117,7 @@ class Player extends GameObject {
 
                 if (globalThis.LEFT_MOUSE) {
                     this.state = PlayerState.AIM
+                    this.startAimTime = performance.now()
                 }
 
                 break
@@ -106,9 +125,15 @@ class Player extends GameObject {
             case PlayerState.AIM: {
                 // Release Left Mouse
                 if (!globalThis.LEFT_MOUSE) {
+                    // Calculate magnitude of dash based on time since aim start
+                    const aimTime = performance.now() - this.startAimTime
+                    const dashPerc = Math.min(1, aimTime/this.maxAimTime)
+                    const dashMag = this.maxDashMag * dashPerc
+                    console.log(dashPerc, dashMag)
+
                     const p = this.screenPos
                     const v = Vector.fromPoints(p.x, p.y, globalThis.mouseX, globalThis.mouseY)
-                    this.velocity.set(v.normalize().mult(this.maxDashMag))
+                    this.velocity.set(v.normalize().mult(dashMag))
 
                     this.state = PlayerState.DASH
                 }
@@ -117,16 +142,23 @@ class Player extends GameObject {
             case PlayerState.DASH: {
                 if (globalThis.LEFT_MOUSE) {
                     this.state = PlayerState.AIM
+                    this.startAimTime = performance.now()
                 } else if (this.velocity.mag < this.speed/2) {
+                    this.state = PlayerState.MOVE
+                }
+            }
+            case PlayerState.KNOCK_BACK: {
+                if (this.velocity.mag < 1) {
                     this.state = PlayerState.MOVE
                 }
             }
         }
 
-        // Update velocity
+        // Update position
         this.x += this.velocity.x
         this.y += this.velocity.y
 
+        // Update velocity
         this.velocity.x *= this.friction
         this.velocity.y *= this.friction
         if (Math.abs(this.velocity.x) < 0.1) this.velocity.x = 0
@@ -140,7 +172,7 @@ class Player extends GameObject {
         this.state = PlayerState.MOVE
         this.x = 0
         this.y = 0
-        this.velocity.reset()
+        this.velocity.set(0, 0)
         this.radius = this.initialRadius
     }
 }

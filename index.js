@@ -156,10 +156,47 @@ class Collider {
     }
 }
 Collider.allColliders = [];
-Collider.debug = false;
+Collider.debug = true;
 class GameObject {
     constructor(tag = "") {
         this.tag = tag;
+    }
+}
+class Enemy extends GameObject {
+    constructor(x = 0, y = 0, radius = 20) {
+        super("enemy");
+        this.radius = radius;
+        this.velocity = new Vector(0, 0);
+        this.friction = .9;
+        this._x = 0;
+        this._y = 0;
+        this.collider = new Collider(this, radius);
+        this.x = x;
+        this.y = y;
+    }
+    update() {
+        this.x += this.velocity.x;
+        this.y += this.velocity.y;
+        this.velocity.x *= this.friction;
+        this.velocity.y *= this.friction;
+        if (Math.abs(this.velocity.x) < 0.1)
+            this.velocity.x = 0;
+        if (Math.abs(this.velocity.y) < 0.1)
+            this.velocity.y = 0;
+    }
+    set x(x) {
+        this._x = x;
+        this.collider.x = x;
+    }
+    get x() {
+        return this._x;
+    }
+    set y(y) {
+        this._y = y;
+        this.collider.y = y;
+    }
+    get y() {
+        return this._y;
     }
 }
 const cam = new Camera();
@@ -167,11 +204,12 @@ const stage = Camera.stage;
 PIXI.Loader.shared
     .add("sheet", "./spritesheets/sheet.json")
     .load(init);
-let player;
+let player, enemy;
 let lastTimestamp;
 function init(loader, resources) {
     const sheet = resources["sheet"].spritesheet;
     new Platform();
+    enemy = new Enemy(100, 100);
     player = new Player(sheet.textures["player.png"]);
     player.collider.on("exit", col => {
         if (col.gameObj.tag === "platform")
@@ -185,6 +223,7 @@ function tick(time) {
     deltaTime = time - lastTimestamp;
     Collider.update();
     player.update();
+    enemy.update();
     cam.render();
     lastTimestamp = time;
     window.requestAnimationFrame(tick);
@@ -261,15 +300,17 @@ var PlayerState;
     PlayerState[PlayerState["MOVE"] = 1] = "MOVE";
     PlayerState[PlayerState["AIM"] = 2] = "AIM";
     PlayerState[PlayerState["DASH"] = 3] = "DASH";
+    PlayerState[PlayerState["KNOCK_BACK"] = 4] = "KNOCK_BACK";
 })(PlayerState || (PlayerState = {}));
 class Player extends GameObject {
     constructor(img, radius = 15) {
         super("player");
-        this.speed = 5;
+        this.speed = 3;
         this.state = PlayerState.MOVE;
         this.velocity = new Vector(0, 0);
         this.friction = .9;
-        this.maxDashMag = 50;
+        this.maxDashMag = 30;
+        this.maxAimTime = 900;
         this._x = 0;
         this._y = 0;
         this.sprite = new Sprite(img);
@@ -278,6 +319,16 @@ class Player extends GameObject {
             if (col.gameObj.tag === "platform") {
                 this.state = PlayerState.DEAD;
                 this.initialRadius = this.radius;
+            }
+        });
+        this.collider.on("enter", (col) => {
+            if (col.gameObj.tag === "enemy") {
+                const e = col.gameObj;
+                const collisionVector = Vector.fromPoints(this.collider.x, this.collider.y, col.x, col.y).normalize();
+                const vel = this.velocity.mag;
+                this.velocity.set(Vector.mult(collisionVector, -vel / 2));
+                e.velocity.set(collisionVector.mult(vel));
+                this.state = PlayerState.KNOCK_BACK;
             }
         });
         this.radius = radius;
@@ -340,14 +391,19 @@ class Player extends GameObject {
                 }
                 if (globalThis.LEFT_MOUSE) {
                     this.state = PlayerState.AIM;
+                    this.startAimTime = performance.now();
                 }
                 break;
             }
             case PlayerState.AIM: {
                 if (!globalThis.LEFT_MOUSE) {
+                    const aimTime = performance.now() - this.startAimTime;
+                    const dashPerc = Math.min(1, aimTime / this.maxAimTime);
+                    const dashMag = this.maxDashMag * dashPerc;
+                    console.log(dashPerc, dashMag);
                     const p = this.screenPos;
                     const v = Vector.fromPoints(p.x, p.y, globalThis.mouseX, globalThis.mouseY);
-                    this.velocity.set(v.normalize().mult(this.maxDashMag));
+                    this.velocity.set(v.normalize().mult(dashMag));
                     this.state = PlayerState.DASH;
                 }
                 break;
@@ -355,8 +411,14 @@ class Player extends GameObject {
             case PlayerState.DASH: {
                 if (globalThis.LEFT_MOUSE) {
                     this.state = PlayerState.AIM;
+                    this.startAimTime = performance.now();
                 }
                 else if (this.velocity.mag < this.speed / 2) {
+                    this.state = PlayerState.MOVE;
+                }
+            }
+            case PlayerState.KNOCK_BACK: {
+                if (this.velocity.mag < 1) {
                     this.state = PlayerState.MOVE;
                 }
             }
@@ -376,7 +438,7 @@ class Player extends GameObject {
         this.state = PlayerState.MOVE;
         this.x = 0;
         this.y = 0;
-        this.velocity.reset();
+        this.velocity.set(0, 0);
         this.radius = this.initialRadius;
     }
 }
@@ -384,13 +446,6 @@ class Vector {
     constructor(x, y) {
         this.x = x;
         this.y = y;
-        this.initialX = x;
-        this.initialY = y;
-    }
-    reset() {
-        this.x = this.initialX;
-        this.y = this.initialY;
-        return this;
     }
     normalize() {
         this.div(this.mag);
@@ -409,12 +464,33 @@ class Vector {
     get mag() {
         return Math.sqrt(Math.pow(this.x, 2) + Math.pow(this.y, 2));
     }
-    set(v) {
-        this.x = v.x;
-        this.y = v.y;
+    set(v, y) {
+        if (v instanceof Vector) {
+            this.x = v.x;
+            this.y = v.y;
+        }
+        else if (y === undefined) {
+            this.x = this.y = v;
+        }
+        else {
+            this.x = v;
+            this.y = y;
+        }
+    }
+    copy() {
+        return new Vector(this.x, this.y);
     }
     static fromPoints(x1, y1, x2, y2) {
         return new Vector(x2 - x1, y2 - y1);
+    }
+    static fromVectors(v1, v2) {
+        return Vector.fromPoints(v1.x, v1.y, v2.x, v2.y);
+    }
+    static mult(v, n) {
+        return v.copy().mult(n);
+    }
+    static div(v, n) {
+        return v.copy().div(n);
     }
 }
 //# sourceMappingURL=index.js.map

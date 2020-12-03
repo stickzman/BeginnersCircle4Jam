@@ -1,17 +1,5 @@
 class Vector {
-    private initialX: number
-    private initialY: number
-
-    constructor(public x: number, public y: number) {
-        this.initialX = x
-        this.initialY = y
-    }
-
-    reset(): Vector {
-        this.x = this.initialX
-        this.y = this.initialY
-        return this
-    }
+    constructor(public x: number, public y: number) { }
 
     normalize(): Vector {
         this.div(this.mag)
@@ -35,12 +23,37 @@ class Vector {
         return Math.sqrt(this.x**2 + this.y**2)
     }
 
-    set(v: Vector) {
-        this.x = v.x
-        this.y = v.y
+    set(v: Vector | number, y?: number) {
+        if (v instanceof Vector) {
+            this.x = v.x
+            this.y = v.y
+        } else if (y === undefined) {
+            this.x = this.y = v
+        } else {
+            this.x = v
+            this.y = y
+        }
+    }
+
+    copy(): Vector {
+        return new Vector(this.x, this.y)
     }
 
     static fromPoints(x1: number, y1: number, x2: number, y2: number) {
         return new Vector(x2 - x1, y2 - y1)
+    }
+
+    static fromVectors(v1: Vector, v2: Vector) {
+        return Vector.fromPoints(v1.x, v1.y, v2.x, v2.y)
+    }
+
+    // Multiply without changing original vector
+    static mult(v: Vector, n: number) {
+        return v.copy().mult(n)
+    }
+
+    // Divide without changing original vector
+    static div(v: Vector, n: number) {
+        return v.copy().div(n)
     }
 }

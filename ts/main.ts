@@ -8,12 +8,13 @@ PIXI.Loader.shared
     .add("sheet", "./spritesheets/sheet.json")
     .load(init)
 
-let player
+let player, enemy
 let lastTimestamp: number
 function init(loader, resources) {
     const sheet = resources["sheet"].spritesheet
 
     new Platform()
+    enemy = new Enemy(100, 100)
 
     player = new Player(sheet.textures["player.png"])
     player.collider.on("exit", col => {
@@ -30,6 +31,7 @@ function tick(time: number) {
 
     Collider.update()
     player.update()
+    enemy.update()
 
     cam.render()
 

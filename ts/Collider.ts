@@ -5,7 +5,7 @@ interface Listener {
 
 class Collider {
     static allColliders: Collider[] = []
-    static debug: boolean = false
+    static debug: boolean = true
     touching: Set<Collider> = new Set()
     listeners: Listener[] = []
     visual: PIXI.Graphics
