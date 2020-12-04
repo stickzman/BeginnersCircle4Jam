@@ -9,6 +9,7 @@ enum PlayerState {
 
 class Player extends GameObject {
     sprite: PIXI.Sprite
+    indicator: PIXI.Sprite
     speed: number = 3
     collider: Collider
     state: PlayerState = PlayerState.MOVE
@@ -26,8 +27,12 @@ class Player extends GameObject {
 
     constructor(img: PIXI.Texture, radius: number = 15) {
         super("player")
+        this.indicator = new Sprite(globalThis.spritesheet.textures["arrow.png"])
         this.sprite = new Sprite(img)
         this.collider = new Collider(this, radius)
+        this.indicator.pivot.set(this.indicator.width/2, this.indicator.height + 10)
+        this.indicator.width = 25
+        this.indicator.height = 0
         this.collider.on("exit", (col: Collider) => {
             if (col.gameObj.tag === "platform") {
                 this.state = PlayerState.DEAD
@@ -55,6 +60,7 @@ class Player extends GameObject {
     set x(x: number) {
         this._x = x
         this.sprite.x = x
+        this.indicator.x = x
         this.collider.x = x
     }
     get x(): number {
@@ -64,6 +70,7 @@ class Player extends GameObject {
     set y(y: number) {
         this._y = y
         this.sprite.y = y
+        this.indicator.y = y
         this.collider.y = y
     }
     get y(): number {
@@ -89,6 +96,7 @@ class Player extends GameObject {
         // Find angle of rotation
         const rotation = Math.atan2(x - p.x, p.y - y)
         this.sprite.rotation = rotation
+        this.indicator.rotation = rotation
     }
 
     update() {
@@ -123,13 +131,15 @@ class Player extends GameObject {
                 break
             }
             case PlayerState.AIM: {
+                // Calculate magnitude of dash based on time since aim start
+                const aimTime = performance.now() - this.startAimTime
+                const percent = Math.min(1, Math.sqrt(aimTime/this.maxAimTime))
+                this.indicator.height = 100 * percent
                 // Release Left Mouse
                 if (!globalThis.LEFT_MOUSE) {
-                    // Calculate magnitude of dash based on time since aim start
-                    const aimTime = performance.now() - this.startAimTime
-                    const dashPerc = Math.min(1, aimTime/this.maxAimTime)
-                    const dashMag = this.maxDashMag * dashPerc
-                    console.log(dashPerc, dashMag)
+                    const dashMag = this.maxDashMag * percent
+                    this.indicator.height = 0
+                    console.log(percent, dashMag)
 
                     const p = this.screenPos
                     const v = Vector.fromPoints(p.x, p.y, globalThis.mouseX, globalThis.mouseY)

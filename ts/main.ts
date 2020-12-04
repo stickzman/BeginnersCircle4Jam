@@ -12,6 +12,7 @@ let player, enemy
 let lastTimestamp: number
 function init(loader, resources) {
     const sheet = resources["sheet"].spritesheet
+    globalThis.spritesheet = sheet
 
     new Platform()
     enemy = new Enemy(100, 100)

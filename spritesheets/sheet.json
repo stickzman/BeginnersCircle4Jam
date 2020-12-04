@@ -1,8 +1,16 @@
 {"frames": {
 
+"arrow.png":
+{
+	"frame": {"x":0,"y":0,"w":35,"h":100},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":35,"h":100},
+	"sourceSize": {"w":35,"h":100}
+},
 "player.png":
 {
-	"frame": {"x":0,"y":0,"w":100,"h":100},
+	"frame": {"x":35,"y":0,"w":100,"h":100},
 	"rotated": false,
 	"trimmed": false,
 	"spriteSourceSize": {"x":0,"y":0,"w":100,"h":100},
@@ -13,8 +21,8 @@
 	"version": "1.0",
 	"image": "sheet.png",
 	"format": "RGBA8888",
-	"size": {"w":100,"h":100},
+	"size": {"w":135,"h":100},
 	"scale": "1",
-	"smartupdate": "$TexturePacker:SmartUpdate:5feb0bf616e0049959a251b0d1cd4244:df632c96afa8ea9aecbb0b591301eb8f:9c44ecd7e9a522007eaff2949095bc1d$"
+	"smartupdate": "$TexturePacker:SmartUpdate:25df57a79fff27dc906eb27d9d4a73b1:6259fc6c6b3fbca9f47859e30c21b472:9c44ecd7e9a522007eaff2949095bc1d$"
 }
 }

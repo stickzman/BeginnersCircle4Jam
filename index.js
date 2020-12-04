@@ -156,7 +156,7 @@ class Collider {
     }
 }
 Collider.allColliders = [];
-Collider.debug = true;
+Collider.debug = false;
 class GameObject {
     constructor(tag = "") {
         this.tag = tag;
@@ -208,6 +208,7 @@ let player, enemy;
 let lastTimestamp;
 function init(loader, resources) {
     const sheet = resources["sheet"].spritesheet;
+    globalThis.spritesheet = sheet;
     new Platform();
     enemy = new Enemy(100, 100);
     player = new Player(sheet.textures["player.png"]);
@@ -313,8 +314,12 @@ class Player extends GameObject {
         this.maxAimTime = 900;
         this._x = 0;
         this._y = 0;
+        this.indicator = new Sprite(globalThis.spritesheet.textures["arrow.png"]);
         this.sprite = new Sprite(img);
         this.collider = new Collider(this, radius);
+        this.indicator.pivot.set(this.indicator.width / 2, this.indicator.height + 10);
+        this.indicator.width = 25;
+        this.indicator.height = 0;
         this.collider.on("exit", (col) => {
             if (col.gameObj.tag === "platform") {
                 this.state = PlayerState.DEAD;
@@ -337,6 +342,7 @@ class Player extends GameObject {
     set x(x) {
         this._x = x;
         this.sprite.x = x;
+        this.indicator.x = x;
         this.collider.x = x;
     }
     get x() {
@@ -345,6 +351,7 @@ class Player extends GameObject {
     set y(y) {
         this._y = y;
         this.sprite.y = y;
+        this.indicator.y = y;
         this.collider.y = y;
     }
     get y() {
@@ -365,6 +372,7 @@ class Player extends GameObject {
         const p = this.screenPos;
         const rotation = Math.atan2(x - p.x, p.y - y);
         this.sprite.rotation = rotation;
+        this.indicator.rotation = rotation;
     }
     update() {
         switch (this.state) {
@@ -396,11 +404,13 @@ class Player extends GameObject {
                 break;
             }
             case PlayerState.AIM: {
+                const aimTime = performance.now() - this.startAimTime;
+                const percent = Math.min(1, Math.sqrt(aimTime / this.maxAimTime));
+                this.indicator.height = 100 * percent;
                 if (!globalThis.LEFT_MOUSE) {
-                    const aimTime = performance.now() - this.startAimTime;
-                    const dashPerc = Math.min(1, aimTime / this.maxAimTime);
-                    const dashMag = this.maxDashMag * dashPerc;
-                    console.log(dashPerc, dashMag);
+                    const dashMag = this.maxDashMag * percent;
+                    this.indicator.height = 0;
+                    console.log(percent, dashMag);
                     const p = this.screenPos;
                     const v = Vector.fromPoints(p.x, p.y, globalThis.mouseX, globalThis.mouseY);
                     this.velocity.set(v.normalize().mult(dashMag));
