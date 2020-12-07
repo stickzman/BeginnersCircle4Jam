@@ -138,7 +138,7 @@ class Player extends GameObject {
                 if (!globalThis.LEFT_MOUSE) {
                     const dashMag = this.maxDashMag * percent
                     this.indicator.height = 0
-                    console.log(percent, dashMag)
+                    // console.log(percent, dashMag)
 
                     const p = this.screenPos
                     const v = Vector.fromPoints(p.x, p.y, globalThis.mouseX, globalThis.mouseY)

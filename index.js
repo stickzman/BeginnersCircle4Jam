@@ -162,6 +162,12 @@ class GameObject {
         this.tag = tag;
     }
 }
+var EnemyState;
+(function (EnemyState) {
+    EnemyState[EnemyState["DEAD"] = 0] = "DEAD";
+    EnemyState[EnemyState["MOVE"] = 1] = "MOVE";
+    EnemyState[EnemyState["INACTIVE"] = 2] = "INACTIVE";
+})(EnemyState || (EnemyState = {}));
 class Enemy extends GameObject {
     constructor(x = 0, y = 0, radius = 20) {
         super("enemy");
@@ -172,19 +178,16 @@ class Enemy extends GameObject {
         this._r = 0;
         this.sprite = new Sprite(globalThis.spritesheet.textures["enemy.png"]);
         this.collider = new Collider(this, radius);
+        this.collider.on("exit", (col) => {
+            if (col.gameObj.tag === "platform") {
+                this.state = EnemyState.DEAD;
+                this.initialRadius = this.radius;
+            }
+        });
         this.x = x;
         this.y = y;
         this.radius = radius;
-    }
-    update() {
-        this.x += this.velocity.x;
-        this.y += this.velocity.y;
-        this.velocity.x *= this.friction;
-        this.velocity.y *= this.friction;
-        if (Math.abs(this.velocity.x) < 0.1)
-            this.velocity.x = 0;
-        if (Math.abs(this.velocity.y) < 0.1)
-            this.velocity.y = 0;
+        this.state = EnemyState.MOVE;
     }
     set x(x) {
         this._x = x;
@@ -210,19 +213,40 @@ class Enemy extends GameObject {
     get radius() {
         return this._r;
     }
+    update() {
+        switch (this.state) {
+            case EnemyState.DEAD: {
+                this.radius -= 0.5;
+                this.sprite.angle += 3;
+                if (this.radius <= 0) {
+                    this.state = EnemyState.INACTIVE;
+                }
+                break;
+            }
+        }
+        this.x += this.velocity.x;
+        this.y += this.velocity.y;
+        this.velocity.x *= this.friction;
+        this.velocity.y *= this.friction;
+        if (Math.abs(this.velocity.x) < 0.1)
+            this.velocity.x = 0;
+        if (Math.abs(this.velocity.y) < 0.1)
+            this.velocity.y = 0;
+    }
 }
 const cam = new Camera();
 const stage = Camera.stage;
+let player;
+let enemies = [];
+let lastTimestamp;
 PIXI.Loader.shared
     .add("sheet", "./spritesheets/sheet.json")
     .load(init);
-let player, enemy;
-let lastTimestamp;
 function init(loader, resources) {
     const sheet = resources["sheet"].spritesheet;
     globalThis.spritesheet = sheet;
     new Platform();
-    enemy = new Enemy(100, 100);
+    enemies.push(new Enemy(100, 100));
     player = new Player(sheet.textures["player.png"]);
     player.collider.on("exit", col => {
         if (col.gameObj.tag === "platform")
@@ -236,7 +260,15 @@ function tick(time) {
     deltaTime = time - lastTimestamp;
     Collider.update();
     player.update();
-    enemy.update();
+    for (const [i, e] of enemies.entries()) {
+        if (e.state === EnemyState.INACTIVE) {
+            enemies.splice(i, 1);
+            continue;
+        }
+        e.update();
+    }
+    if (enemies.length === 0)
+        console.log("YOU WIN!");
     cam.render();
     lastTimestamp = time;
     window.requestAnimationFrame(tick);
@@ -421,7 +453,6 @@ class Player extends GameObject {
                 if (!globalThis.LEFT_MOUSE) {
                     const dashMag = this.maxDashMag * percent;
                     this.indicator.height = 0;
-                    console.log(percent, dashMag);
                     const p = this.screenPos;
                     const v = Vector.fromPoints(p.x, p.y, globalThis.mouseX, globalThis.mouseY);
                     this.velocity.set(v.normalize().mult(dashMag));

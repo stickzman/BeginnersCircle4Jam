@@ -1,34 +1,36 @@
 /// <reference path="./GameObject.ts" />
+enum EnemyState {
+    DEAD,
+    MOVE,
+    INACTIVE
+}
+
 class Enemy extends GameObject {
     sprite: PIXI.Sprite
     collider: Collider
     velocity = new Vector(0, 0)
     friction: number = .9
+    state: EnemyState
 
     private _x: number = 0
     private _y: number = 0
     private _r: number = 0
+    private initialRadius: number
 
     constructor(x: number = 0, y: number = 0, radius: number = 20) {
         super("enemy")
         this.sprite = new Sprite(globalThis.spritesheet.textures["enemy.png"])
         this.collider = new Collider(this, radius)
+        this.collider.on("exit", (col: Collider) => {
+            if (col.gameObj.tag === "platform") {
+                this.state = EnemyState.DEAD
+                this.initialRadius = this.radius
+            }
+        })
         this.x = x
         this.y = y
         this.radius = radius
-    }
-
-    update() {
-        // Update position
-        this.x += this.velocity.x
-        this.y += this.velocity.y
-
-        // Update velocity
-        this.velocity.x *= this.friction
-        this.velocity.y *= this.friction
-        if (Math.abs(this.velocity.x) < 0.1) this.velocity.x = 0
-        if (Math.abs(this.velocity.y) < 0.1) this.velocity.y = 0
-
+        this.state = EnemyState.MOVE
     }
 
     set x(x: number) {
@@ -57,5 +59,29 @@ class Enemy extends GameObject {
 
     get radius(): number {
         return this._r
+    }
+
+    update() {
+        switch (this.state) {
+            case EnemyState.DEAD: {
+                // Shrink player (like they're falling)
+                this.radius -= 0.5
+                this.sprite.angle += 3
+                if (this.radius <= 0) {
+                    this.state = EnemyState.INACTIVE
+                }
+                break
+            }
+        }
+
+        // Update position
+        this.x += this.velocity.x
+        this.y += this.velocity.y
+
+        // Update velocity
+        this.velocity.x *= this.friction
+        this.velocity.y *= this.friction
+        if (Math.abs(this.velocity.x) < 0.1) this.velocity.x = 0
+        if (Math.abs(this.velocity.y) < 0.1) this.velocity.y = 0
     }
 }
