@@ -42,13 +42,12 @@ class Player extends GameObject {
         this.collider.on("enter", (col: Collider) => {
             if (col.gameObj.tag === "enemy") {
                 const e = <Enemy>col.gameObj
-                // TODO: Circle collision resolution/bouncing
+                // Circle collision resolution/bouncing
                 const collisionVector = Vector.fromPoints(this.collider.x, this.collider.y, col.x, col.y).normalize()
-                const vel = this.velocity.mag
-                // Player rebound velocity
-                this.velocity.set(Vector.mult(collisionVector, -vel/2))
                 // Enemy rebound velocity
-                e.velocity.set(collisionVector.mult(vel))
+                e.velocity.set(Vector.mult(collisionVector, this.velocity.mag))
+                // Player rebound velocity
+                this.velocity.set(Vector.mult(collisionVector, -1))
 
                 this.state = PlayerState.KNOCK_BACK
             }

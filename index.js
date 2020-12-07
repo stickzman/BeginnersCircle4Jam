@@ -165,14 +165,16 @@ class GameObject {
 class Enemy extends GameObject {
     constructor(x = 0, y = 0, radius = 20) {
         super("enemy");
-        this.radius = radius;
         this.velocity = new Vector(0, 0);
         this.friction = .9;
         this._x = 0;
         this._y = 0;
+        this._r = 0;
+        this.sprite = new Sprite(globalThis.spritesheet.textures["enemy.png"]);
         this.collider = new Collider(this, radius);
         this.x = x;
         this.y = y;
+        this.radius = radius;
     }
     update() {
         this.x += this.velocity.x;
@@ -186,6 +188,7 @@ class Enemy extends GameObject {
     }
     set x(x) {
         this._x = x;
+        this.sprite.x = x;
         this.collider.x = x;
     }
     get x() {
@@ -193,10 +196,19 @@ class Enemy extends GameObject {
     }
     set y(y) {
         this._y = y;
+        this.sprite.y = y;
         this.collider.y = y;
     }
     get y() {
         return this._y;
+    }
+    set radius(r) {
+        this._r = r;
+        this.sprite.width = this.sprite.height = r * 2;
+        this.collider.radius = r;
+    }
+    get radius() {
+        return this._r;
     }
 }
 const cam = new Camera();
@@ -330,9 +342,8 @@ class Player extends GameObject {
             if (col.gameObj.tag === "enemy") {
                 const e = col.gameObj;
                 const collisionVector = Vector.fromPoints(this.collider.x, this.collider.y, col.x, col.y).normalize();
-                const vel = this.velocity.mag;
-                this.velocity.set(Vector.mult(collisionVector, -vel / 2));
-                e.velocity.set(collisionVector.mult(vel));
+                e.velocity.set(Vector.mult(collisionVector, this.velocity.mag));
+                this.velocity.set(Vector.mult(collisionVector, -1));
                 this.state = PlayerState.KNOCK_BACK;
             }
         });

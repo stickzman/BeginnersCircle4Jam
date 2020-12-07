@@ -1,17 +1,21 @@
 /// <reference path="./GameObject.ts" />
 class Enemy extends GameObject {
+    sprite: PIXI.Sprite
     collider: Collider
     velocity = new Vector(0, 0)
     friction: number = .9
 
     private _x: number = 0
     private _y: number = 0
+    private _r: number = 0
 
-    constructor(x: number = 0, y: number = 0, public radius: number = 20) {
+    constructor(x: number = 0, y: number = 0, radius: number = 20) {
         super("enemy")
+        this.sprite = new Sprite(globalThis.spritesheet.textures["enemy.png"])
         this.collider = new Collider(this, radius)
         this.x = x
         this.y = y
+        this.radius = radius
     }
 
     update() {
@@ -29,6 +33,7 @@ class Enemy extends GameObject {
 
     set x(x: number) {
         this._x = x
+        this.sprite.x = x
         this.collider.x = x
     }
     get x(): number {
@@ -37,9 +42,20 @@ class Enemy extends GameObject {
 
     set y(y: number) {
         this._y = y
+        this.sprite.y = y
         this.collider.y = y
     }
     get y(): number {
         return this._y
+    }
+
+    set radius(r: number) {
+        this._r = r
+        this.sprite.width = this.sprite.height = r * 2
+        this.collider.radius = r
+    }
+
+    get radius(): number {
+        return this._r
     }
 }
