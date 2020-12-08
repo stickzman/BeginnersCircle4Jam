@@ -4,7 +4,6 @@
 const cam = new Camera()
 const stage = Camera.stage
 let player: Player
-let enemies: Enemy[] = []
 let lastTimestamp: number
 
 PIXI.Loader.shared
@@ -16,7 +15,7 @@ function init(loader, resources) {
     globalThis.spritesheet = sheet
 
     new Platform()
-    enemies.push(new Enemy(100, 100))
+    Enemy.spawn(10)
 
     player = new Player(sheet.textures["player.png"])
     player.collider.on("exit", col => {
@@ -33,14 +32,14 @@ function tick(time: number) {
 
     Collider.update()
     player.update()
-    for (const [i, e] of enemies.entries()) {
+    for (const [i, e] of Enemy.enemies.entries()) {
         if (e.state === EnemyState.INACTIVE) {
-            enemies.splice(i, 1)
+            Enemy.enemies.splice(i, 1)
             continue
         }
         e.update()
     }
-    if (enemies.length === 0) console.log("YOU WIN!")
+    if (Enemy.enemies.length === 0) console.log("YOU WIN!")
 
     cam.render()
 

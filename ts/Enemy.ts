@@ -6,6 +6,7 @@ enum EnemyState {
 }
 
 class Enemy extends GameObject {
+    static enemies: Enemy[] = []
     sprite: PIXI.Sprite
     collider: Collider
     velocity = new Vector(0, 0)
@@ -31,6 +32,7 @@ class Enemy extends GameObject {
         this.y = y
         this.radius = radius
         this.state = EnemyState.MOVE
+        Enemy.enemies.push(this)
     }
 
     set x(x: number) {
@@ -83,5 +85,15 @@ class Enemy extends GameObject {
         this.velocity.y *= this.friction
         if (Math.abs(this.velocity.x) < 0.1) this.velocity.x = 0
         if (Math.abs(this.velocity.y) < 0.1) this.velocity.y = 0
+    }
+
+    static spawn(numEnemies: number, radius: number = 250, minRadius: number = 75) {
+        for (let i = 0; i < numEnemies; i++) {
+            let r = Math.floor((Math.random() * (radius - minRadius)) + minRadius)
+            let angle = Math.random() * 360
+            let x = r * Math.sin(angle)
+            let y = r * Math.cos(angle)
+            new Enemy(x, y)
+        }
     }
 }

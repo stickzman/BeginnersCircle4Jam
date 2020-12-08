@@ -157,7 +157,7 @@ class Player extends GameObject {
                 }
             }
             case PlayerState.KNOCK_BACK: {
-                if (this.velocity.mag < 1) {
+                if (this.velocity.mag < 0.5) {
                     this.state = PlayerState.MOVE
                 }
             }

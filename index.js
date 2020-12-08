@@ -188,6 +188,7 @@ class Enemy extends GameObject {
         this.y = y;
         this.radius = radius;
         this.state = EnemyState.MOVE;
+        Enemy.enemies.push(this);
     }
     set x(x) {
         this._x = x;
@@ -233,11 +234,20 @@ class Enemy extends GameObject {
         if (Math.abs(this.velocity.y) < 0.1)
             this.velocity.y = 0;
     }
+    static spawn(numEnemies, radius = 250, minRadius = 75) {
+        for (let i = 0; i < numEnemies; i++) {
+            let r = Math.floor((Math.random() * (radius - minRadius)) + minRadius);
+            let angle = Math.random() * 360;
+            let x = r * Math.sin(angle);
+            let y = r * Math.cos(angle);
+            new Enemy(x, y);
+        }
+    }
 }
+Enemy.enemies = [];
 const cam = new Camera();
 const stage = Camera.stage;
 let player;
-let enemies = [];
 let lastTimestamp;
 PIXI.Loader.shared
     .add("sheet", "./spritesheets/sheet.json")
@@ -246,7 +256,7 @@ function init(loader, resources) {
     const sheet = resources["sheet"].spritesheet;
     globalThis.spritesheet = sheet;
     new Platform();
-    enemies.push(new Enemy(100, 100));
+    Enemy.spawn(10);
     player = new Player(sheet.textures["player.png"]);
     player.collider.on("exit", col => {
         if (col.gameObj.tag === "platform")
@@ -260,14 +270,14 @@ function tick(time) {
     deltaTime = time - lastTimestamp;
     Collider.update();
     player.update();
-    for (const [i, e] of enemies.entries()) {
+    for (const [i, e] of Enemy.enemies.entries()) {
         if (e.state === EnemyState.INACTIVE) {
-            enemies.splice(i, 1);
+            Enemy.enemies.splice(i, 1);
             continue;
         }
         e.update();
     }
-    if (enemies.length === 0)
+    if (Enemy.enemies.length === 0)
         console.log("YOU WIN!");
     cam.render();
     lastTimestamp = time;
@@ -470,7 +480,7 @@ class Player extends GameObject {
                 }
             }
             case PlayerState.KNOCK_BACK: {
-                if (this.velocity.mag < 1) {
+                if (this.velocity.mag < 0.5) {
                     this.state = PlayerState.MOVE;
                 }
             }
