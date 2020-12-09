@@ -46,6 +46,28 @@ class Enemy extends GameObject {
         this.indicator.height = 0
         this.sprite = new Sprite(globalThis.spritesheet.textures["enemy.png"])
         this.collider = new Collider(this, radius)
+        this.collider.on("enter", (col: Collider) => {
+            if (col.gameObj.tag === "enemy") {
+                const e = <Enemy>col.gameObj
+                // Circle collision resolution/bouncing
+                const collisionVector = Vector.fromPoints(this.collider.x, this.collider.y, col.x, col.y).normalize()
+                const faster = this.velocity.mag >= e.velocity.mag
+                if (faster) {
+                    // Enemy rebound velocity
+                    e.velocity.set(Vector.mult(collisionVector, this.velocity.mag))
+                    // Player rebound velocity
+                    this.velocity.set(Vector.mult(collisionVector, -1))
+                } else {
+                    this.velocity.set(Vector.mult(collisionVector, -e.velocity.mag))
+                    e.velocity.set(Vector.mult(collisionVector, 1))
+                }
+
+                this.state = EnemyState.KNOCK_BACK
+                e.state = EnemyState.KNOCK_BACK
+                col.touching.add(this.collider)
+            }
+        })
+        this.radius = radius
         this.collider.on("exit", (col: Collider) => {
             if (col.gameObj.tag === "platform") {
                 this.state = EnemyState.DEAD
@@ -54,7 +76,7 @@ class Enemy extends GameObject {
         this.x = x
         this.y = y
         this.radius = radius
-        this.state = EnemyState.AIM
+        this.state = EnemyState.KNOCK_BACK
         Enemy.enemies.push(this)
     }
 

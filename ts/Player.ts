@@ -187,6 +187,14 @@ class Player extends GameObject {
     }
 
     respawn() {
+        // Check for any enemies in spawn point and move them
+        const enemiesAtSpawn = Collider.circleCheck(0, 0, this.initialRadius, "enemy")
+        for (const c of enemiesAtSpawn) {
+            const e = <Enemy>c.gameObj
+            const dir = Vector.fromPoints(0, 0, c.x, c.y)
+            dir.mag = 25
+            e.pos.set(dir.mag)
+        }
         this.state = PlayerState.MOVE
         this.x = 0
         this.y = 0

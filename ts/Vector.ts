@@ -23,6 +23,10 @@ class Vector {
         return Math.sqrt(this.x**2 + this.y**2)
     }
 
+    set mag(m: number) {
+        this.normalize().mult(m)
+    }
+
     set(v: Vector | number, y?: number) {
         if (v instanceof Vector) {
             this.x = v.x
@@ -45,6 +49,11 @@ class Vector {
 
     static fromVectors(v1: Vector, v2: Vector) {
         return Vector.fromPoints(v1.x, v1.y, v2.x, v2.y)
+    }
+
+    // Unit vector from given angle (in radians)
+    static fromAngle(a: number) {
+        return new Vector(Math.cos(a), Math.sin(a))
     }
 
     // Multiply without changing original vector

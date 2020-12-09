@@ -22,16 +22,16 @@ function init(loader, resources) {
         if (col.gameObj.tag === "platform") console.log("YOU DIED")
     })
 
-    // enemy = new Enemy(100, 100)
-    // enemy = new Enemy(-100, 100)
-    // enemy = new Enemy(-100, -100)
-    Enemy.spawn(5)
+    // Enemy.spawn(2)
+    new Enemy(100, 0)
+    new Enemy(50, 0)
 
     lastTimestamp = performance.now()
     window.requestAnimationFrame(tick)
 }
 
 var deltaTime
+var frameID
 function tick(time: number) {
     deltaTime = time - lastTimestamp
 
@@ -49,5 +49,5 @@ function tick(time: number) {
     cam.render()
 
     lastTimestamp = time
-    window.requestAnimationFrame(tick)
+    frameID = window.requestAnimationFrame(tick)
 }

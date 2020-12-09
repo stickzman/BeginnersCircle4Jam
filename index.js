@@ -104,7 +104,8 @@ class Collider {
         this.y = y;
         this.touching = new Set();
         this.listeners = [];
-        Collider.allColliders.push(this);
+        if (gameObj !== null)
+            Collider.allColliders.push(this);
         if (Collider.debug) {
             this.visual = new PIXI.Graphics();
             this.visual.lineStyle(2, 0x00FF00);
@@ -129,10 +130,7 @@ class Collider {
             for (const col2 of Collider.allColliders) {
                 if (col1 === col2)
                     continue;
-                const dx = col1.x - col2.x;
-                const dy = col1.y - col2.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance < col1.radius + col2.radius) {
+                if (Collider.touching(col1, col2)) {
                     if (col1.touching.has(col2))
                         continue;
                     col1.touching.add(col2);
@@ -153,6 +151,23 @@ class Collider {
                 }
             }
         }
+    }
+    static touching(col1, col2) {
+        const dx = col1.x - col2.x;
+        const dy = col1.y - col2.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        return distance < col1.radius + col2.radius;
+    }
+    static circleCheck(x, y, radius, filter) {
+        const results = [];
+        const checkCol = new Collider(null, radius, x, y);
+        for (const c of Collider.allColliders) {
+            if (Collider.touching(checkCol, c)) {
+                if (!filter || c.gameObj.tag === filter)
+                    results.push(c);
+            }
+        }
+        return results;
     }
 }
 Collider.allColliders = [];
@@ -194,6 +209,25 @@ class Enemy extends GameObject {
         this.indicator.height = 0;
         this.sprite = new Sprite(globalThis.spritesheet.textures["enemy.png"]);
         this.collider = new Collider(this, radius);
+        this.collider.on("enter", (col) => {
+            if (col.gameObj.tag === "enemy") {
+                const e = col.gameObj;
+                const collisionVector = Vector.fromPoints(this.collider.x, this.collider.y, col.x, col.y).normalize();
+                const faster = this.velocity.mag >= e.velocity.mag;
+                if (faster) {
+                    e.velocity.set(Vector.mult(collisionVector, this.velocity.mag));
+                    this.velocity.set(Vector.mult(collisionVector, -1));
+                }
+                else {
+                    this.velocity.set(Vector.mult(collisionVector, -e.velocity.mag));
+                    e.velocity.set(Vector.mult(collisionVector, 1));
+                }
+                this.state = EnemyState.KNOCK_BACK;
+                e.state = EnemyState.KNOCK_BACK;
+                col.touching.add(this.collider);
+            }
+        });
+        this.radius = radius;
         this.collider.on("exit", (col) => {
             if (col.gameObj.tag === "platform") {
                 this.state = EnemyState.DEAD;
@@ -202,7 +236,7 @@ class Enemy extends GameObject {
         this.x = x;
         this.y = y;
         this.radius = radius;
-        this.state = EnemyState.AIM;
+        this.state = EnemyState.KNOCK_BACK;
         Enemy.enemies.push(this);
     }
     set x(x) {
@@ -344,11 +378,13 @@ function init(loader, resources) {
         if (col.gameObj.tag === "platform")
             console.log("YOU DIED");
     });
-    Enemy.spawn(5);
+    new Enemy(100, 0);
+    new Enemy(50, 0);
     lastTimestamp = performance.now();
     window.requestAnimationFrame(tick);
 }
 var deltaTime;
+var frameID;
 function tick(time) {
     deltaTime = time - lastTimestamp;
     Collider.update();
@@ -364,7 +400,7 @@ function tick(time) {
         console.log("YOU WIN!");
     cam.render();
     lastTimestamp = time;
-    window.requestAnimationFrame(tick);
+    frameID = window.requestAnimationFrame(tick);
 }
 var UP, DOWN, LEFT, RIGHT, LEFT_MOUSE, RIGHT_MOUSE;
 var mouseX = 0;
@@ -590,6 +626,13 @@ class Player extends GameObject {
             player.lookAt(globalThis.mouseX, globalThis.mouseY);
     }
     respawn() {
+        const enemiesAtSpawn = Collider.circleCheck(0, 0, this.initialRadius, "enemy");
+        for (const c of enemiesAtSpawn) {
+            const e = c.gameObj;
+            const dir = Vector.fromPoints(0, 0, c.x, c.y);
+            dir.mag = 25;
+            e.pos.set(dir.mag);
+        }
         this.state = PlayerState.MOVE;
         this.x = 0;
         this.y = 0;
@@ -619,6 +662,9 @@ class Vector {
     get mag() {
         return Math.sqrt(Math.pow(this.x, 2) + Math.pow(this.y, 2));
     }
+    set mag(m) {
+        this.normalize().mult(m);
+    }
     set(v, y) {
         if (v instanceof Vector) {
             this.x = v.x;
@@ -640,6 +686,9 @@ class Vector {
     }
     static fromVectors(v1, v2) {
         return Vector.fromPoints(v1.x, v1.y, v2.x, v2.y);
+    }
+    static fromAngle(a) {
+        return new Vector(Math.cos(a), Math.sin(a));
     }
     static mult(v, n) {
         return v.copy().mult(n);

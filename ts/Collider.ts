@@ -10,8 +10,8 @@ class Collider {
     listeners: Listener[] = []
     visual: PIXI.Graphics
 
-    constructor(public gameObj: GameObject, public radius: number, public x = 0, public y = 0) {
-        Collider.allColliders.push(this)
+    constructor(public gameObj: GameObject | null, public radius: number, public x = 0, public y = 0) {
+        if (gameObj !== null) Collider.allColliders.push(this)
         if (Collider.debug) {
             this.visual = new PIXI.Graphics()
             this.visual.lineStyle(2, 0x00FF00)
@@ -40,12 +40,8 @@ class Collider {
 
             for (const col2 of Collider.allColliders) {
                 if (col1 === col2) continue
-                // Find distance between the circles centers
-                const dx = col1.x - col2.x
-                const dy = col1.y - col2.y
-                const distance = Math.sqrt(dx * dx + dy * dy)
 
-                if (distance < col1.radius + col2.radius) {
+                if (Collider.touching(col1, col2)) {
                     // Collision detected!
                     if (col1.touching.has(col2)) continue
                     col1.touching.add(col2)
@@ -65,5 +61,24 @@ class Collider {
                 }
             }
         }
+    }
+
+    static touching(col1: Collider, col2: Collider): boolean {
+        // Find distance between the circles centers
+        const dx = col1.x - col2.x
+        const dy = col1.y - col2.y
+        const distance = Math.sqrt(dx * dx + dy * dy)
+        return distance < col1.radius + col2.radius
+    }
+
+    static circleCheck(x: number, y: number, radius: number, filter: string): Collider[] {
+        const results = []
+        const checkCol = new Collider(null, radius, x, y)
+        for (const c of Collider.allColliders) {
+            if (Collider.touching(checkCol, c)) {
+                if (!filter || c.gameObj.tag === filter) results.push(c)
+            }
+        }
+        return results
     }
 }
