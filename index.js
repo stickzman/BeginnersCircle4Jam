@@ -174,12 +174,13 @@ class Enemy extends GameObject {
         super("enemy");
         this.velocity = new Vector(0, 0);
         this.friction = .9;
-        this.aimSpeed = 0.01;
+        this.aimSpeed = 0.015;
+        this.chargeSpeed = 5;
+        this.maxChargeSpeed = 400;
         this._x = 0;
         this._y = 0;
         this._r = 0;
         this._rot = 0;
-        this.maxAimLength = 400;
         this.target = globalThis.player.pos;
         this.indicator = new Graphic();
         this.indicator.lineStyle(5, 0x000000, 0.5);
@@ -255,8 +256,8 @@ class Enemy extends GameObject {
                 else {
                     this.rotation -= this.aimSpeed;
                 }
-                if (this.indicator.height < this.maxAimLength) {
-                    this.indicator.height += 2;
+                if (this.indicator.height < this.maxChargeSpeed) {
+                    this.indicator.height += this.chargeSpeed;
                 }
                 break;
             }
@@ -291,6 +292,7 @@ Enemy.enemies = [];
 const cam = new Camera();
 const stage = Camera.stage;
 var player;
+var enemy;
 let lastTimestamp;
 PIXI.Loader.shared
     .add("sheet", "./spritesheets/sheet.json")
@@ -304,7 +306,7 @@ function init(loader, resources) {
         if (col.gameObj.tag === "platform")
             console.log("YOU DIED");
     });
-    new Enemy(100, 100);
+    enemy = new Enemy(100, 100);
     lastTimestamp = performance.now();
     window.requestAnimationFrame(tick);
 }

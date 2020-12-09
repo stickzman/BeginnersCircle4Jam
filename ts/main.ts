@@ -4,6 +4,7 @@
 const cam = new Camera()
 const stage = Camera.stage
 var player: Player
+var enemy: Enemy
 let lastTimestamp: number
 
 PIXI.Loader.shared
@@ -21,7 +22,7 @@ function init(loader, resources) {
         if (col.gameObj.tag === "platform") console.log("YOU DIED")
     })
 
-    new Enemy(100, 100)
+    enemy = new Enemy(100, 100)
 
     lastTimestamp = performance.now()
     window.requestAnimationFrame(tick)

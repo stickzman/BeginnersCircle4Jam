@@ -10,18 +10,22 @@ class Enemy extends GameObject {
     static enemies: Enemy[] = []
     sprite: PIXI.Sprite
     indicator: PIXI.Graphics
+
     collider: Collider
     velocity = new Vector(0, 0)
     friction: number = .9
     state: EnemyState
+
     target: Vector
-    aimSpeed: number = 0.01
+
+    aimSpeed: number = 0.015
+    chargeSpeed: number = 5
+    maxChargeSpeed: number = 400
 
     private _x: number = 0
     private _y: number = 0
     private _r: number = 0
     private _rot: number = 0
-    private maxAimLength: number = 400
 
     constructor(x: number = 1, y: number = 1, radius: number = 20) {
         super("enemy")
@@ -111,8 +115,8 @@ class Enemy extends GameObject {
                     this.rotation -= this.aimSpeed
                 }
                 // Pull back bow
-                if (this.indicator.height < this.maxAimLength) {
-                    this.indicator.height += 2
+                if (this.indicator.height < this.maxChargeSpeed) {
+                    this.indicator.height += this.chargeSpeed
                 }
                 break
             }
