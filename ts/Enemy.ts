@@ -134,11 +134,20 @@ class Enemy extends GameObject {
             }
             case EnemyState.AIM: {
                 let angleAligned = false
+                let rotClockwise: boolean
                 // Aim towards target
-                const angleOfRot = Math.atan2(this.target.x - this.x, this.y - this.target.y)
-                if (Math.abs(angleOfRot - this.rotation) < this.aimSpeed) {
+                const angleOfRot = Math.atan2(this.target.x - this.x, this.y - this.target.y) + Math.PI
+                const currRot = this.rotation + Math.PI
+                const diff = (currRot - angleOfRot) % (2 * Math.PI)
+                if (currRot > Math.PI) {
+                    rotClockwise = (diff > Math.PI || diff < 0)
+                } else {
+                    rotClockwise = (diff < 0 && diff < Math.PI)
+                }
+
+                if (Math.abs(diff) < this.aimSpeed) {
                     angleAligned = true
-                } else if (angleOfRot > this.rotation) {
+                } else if (rotClockwise) {
                     this.rotation += this.aimSpeed
                 } else {
                     this.rotation -= this.aimSpeed
@@ -178,7 +187,7 @@ class Enemy extends GameObject {
                 this.x += this.velocity.x * this.dashSpeed
                 this.y += this.velocity.y * this.dashSpeed
                 if (Vector.dist(this.pos, this.dashEnd) < 2) {
-                    this.velocity.mult(10)
+                    this.velocity.mult(this.dashSpeed)
                     this.state = EnemyState.KNOCK_BACK
                 }
                 break

@@ -22,9 +22,7 @@ function init(loader, resources) {
         if (col.gameObj.tag === "platform") console.log("YOU DIED")
     })
 
-    // Enemy.spawn(2)
-    new Enemy(100, 0)
-    new Enemy(50, 0)
+    Enemy.spawn(10)
 
     lastTimestamp = performance.now()
     window.requestAnimationFrame(tick)
