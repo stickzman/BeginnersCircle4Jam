@@ -5,7 +5,6 @@ const cam = new Camera()
 const stage = Camera.stage
 var player: Player
 var enemy: Enemy
-let lastTimestamp: number
 
 PIXI.Loader.shared
     .add("sheet", "./spritesheets/sheet.json")
@@ -24,15 +23,17 @@ function init(loader, resources) {
 
     Enemy.spawn(5)
 
-    lastTimestamp = performance.now()
     window.requestAnimationFrame(tick)
 }
 
-var deltaTime
-var frameID
-function tick(time: number) {
-    deltaTime = time - lastTimestamp
-
+var frameID: number
+var frameHalt = 0
+function tick() {
+    if (frameHalt > 0) {
+        --frameHalt
+        frameID = window.requestAnimationFrame(tick)
+        return
+    }
     Collider.update()
     player.update()
     for (const [i, e] of Enemy.enemies.entries()) {
@@ -46,6 +47,5 @@ function tick(time: number) {
 
     cam.render()
 
-    lastTimestamp = time
     frameID = window.requestAnimationFrame(tick)
 }

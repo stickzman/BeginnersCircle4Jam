@@ -1,4 +1,5 @@
 /// <reference path="./Sprite.ts" />
+PIXI.settings.SORTABLE_CHILDREN = true
 
 class Camera {
     readonly renderer: PIXI.Renderer

@@ -29,6 +29,7 @@ class Player extends GameObject {
         super("player")
         this.indicator = new Sprite(globalThis.spritesheet.textures["arrow.png"])
         this.sprite = new Sprite(img)
+        this.sprite.zIndex = 1
         this.collider = new Collider(this, radius)
         this.indicator.pivot.set(this.indicator.width/2, this.indicator.height + 10)
         this.indicator.width = 25
@@ -48,6 +49,13 @@ class Player extends GameObject {
                 const collisionVector = Vector.fromPoints(this.collider.x, this.collider.y, col.x, col.y).normalize()
                 const faster = this.velocity.mag >= e.velocity.mag
                 if (faster) {
+                    if (this.state === PlayerState.DASH) {
+                        // Squash enemy sprite, angle towards player
+                        e.sprite.height = this.sprite.width
+                        e.sprite.width = 40
+                        e.sprite.angle = this.sprite.angle
+                        // globalThis.frameHalt = Math.floor(30 * (this.velocity.mag/this.maxDashMag))
+                    }
                     // Enemy rebound velocity
                     e.velocity.set(Vector.mult(collisionVector, this.velocity.mag))
                     // Player rebound velocity
@@ -58,7 +66,7 @@ class Player extends GameObject {
                 }
 
                 this.state = PlayerState.KNOCK_BACK
-                e.state = EnemyState.KNOCK_BACK
+                e.state = EnemyState.DASH_KNOCK_BACK
             }
         })
         this.radius = radius
@@ -173,6 +181,12 @@ class Player extends GameObject {
                 break
             }
         }
+
+        if (frameHalt > 0) return // Don't change position
+
+        // Stretch sprite
+        if (this.state !== PlayerState.DEAD)
+            this.sprite.width = 40 - (25 * (this.velocity.mag/this.maxDashMag))
 
         // Update position
         this.x += this.velocity.x

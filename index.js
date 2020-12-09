@@ -54,6 +54,7 @@ class Sprite extends PIXI.Sprite {
         Camera.stage.addChild(this);
     }
 }
+PIXI.settings.SORTABLE_CHILDREN = true;
 class Camera {
     constructor(selector = "body", x = 0, y = 0) {
         this.renderer = PIXI.autoDetectRenderer();
@@ -183,9 +184,10 @@ var EnemyState;
     EnemyState[EnemyState["AIM"] = 1] = "AIM";
     EnemyState[EnemyState["INACTIVE"] = 2] = "INACTIVE";
     EnemyState[EnemyState["KNOCK_BACK"] = 3] = "KNOCK_BACK";
-    EnemyState[EnemyState["DASH"] = 4] = "DASH";
-    EnemyState[EnemyState["REST"] = 5] = "REST";
-    EnemyState[EnemyState["RECOVERY"] = 6] = "RECOVERY";
+    EnemyState[EnemyState["DASH_KNOCK_BACK"] = 4] = "DASH_KNOCK_BACK";
+    EnemyState[EnemyState["DASH"] = 5] = "DASH";
+    EnemyState[EnemyState["REST"] = 6] = "REST";
+    EnemyState[EnemyState["RECOVERY"] = 7] = "RECOVERY";
 })(EnemyState || (EnemyState = {}));
 class Enemy extends GameObject {
     constructor(x = 1, y = 1, radius = 20) {
@@ -225,6 +227,11 @@ class Enemy extends GameObject {
                     this.velocity.set(Vector.mult(collisionVector, -e.velocity.mag));
                     e.velocity.set(Vector.mult(collisionVector, 1));
                 }
+                if (this.state === EnemyState.DASH_KNOCK_BACK ||
+                    e.state === EnemyState.DASH_KNOCK_BACK) {
+                    this.state = EnemyState.DASH_KNOCK_BACK;
+                    e.state = EnemyState.DASH_KNOCK_BACK;
+                }
                 this.state = EnemyState.KNOCK_BACK;
                 e.state = EnemyState.KNOCK_BACK;
                 col.touching.add(this.collider);
@@ -239,6 +246,7 @@ class Enemy extends GameObject {
                     this.state = EnemyState.KNOCK_BACK;
                 }
                 else {
+                    this.radius = 20;
                     this.state = EnemyState.DEAD;
                 }
             }
@@ -294,6 +302,7 @@ class Enemy extends GameObject {
                 break;
             }
             case EnemyState.AIM: {
+                this.radius = 20;
                 let angleAligned = false;
                 let rotClockwise;
                 const angleOfRot = Math.atan2(this.target.x - this.x, this.y - this.target.y) + Math.PI;
@@ -325,6 +334,7 @@ class Enemy extends GameObject {
                 }
                 break;
             }
+            case EnemyState.DASH_KNOCK_BACK:
             case EnemyState.RECOVERY:
             case EnemyState.KNOCK_BACK: {
                 this.indicator.height = 0;
@@ -342,6 +352,7 @@ class Enemy extends GameObject {
                 break;
             }
             case EnemyState.DASH: {
+                this.sprite.width = 30;
                 this.x += this.velocity.x * this.dashSpeed;
                 this.y += this.velocity.y * this.dashSpeed;
                 if (Vector.dist(this.pos, this.dashEnd) < 2) {
@@ -351,8 +362,14 @@ class Enemy extends GameObject {
                 break;
             }
         }
-        if (this.state == EnemyState.DASH)
+        if (frameHalt > 0)
             return;
+        if (this.state == EnemyState.DASH || this.state === EnemyState.INACTIVE)
+            return;
+        if (this.state !== EnemyState.DEAD) {
+            this.sprite.height = 40;
+            this.sprite.width = 40 - (10 * (this.velocity.mag / this.dashSpeed));
+        }
         this.x += this.velocity.x;
         this.y += this.velocity.y;
         this.velocity.x *= this.friction;
@@ -383,7 +400,6 @@ const cam = new Camera();
 const stage = Camera.stage;
 var player;
 var enemy;
-let lastTimestamp;
 PIXI.Loader.shared
     .add("sheet", "./spritesheets/sheet.json")
     .load(init);
@@ -397,13 +413,16 @@ function init(loader, resources) {
             console.log("YOU DIED");
     });
     Enemy.spawn(5);
-    lastTimestamp = performance.now();
     window.requestAnimationFrame(tick);
 }
-var deltaTime;
 var frameID;
-function tick(time) {
-    deltaTime = time - lastTimestamp;
+var frameHalt = 0;
+function tick() {
+    if (frameHalt > 0) {
+        --frameHalt;
+        frameID = window.requestAnimationFrame(tick);
+        return;
+    }
     Collider.update();
     player.update();
     for (const [i, e] of Enemy.enemies.entries()) {
@@ -416,7 +435,6 @@ function tick(time) {
     if (Enemy.enemies.length === 0)
         console.log("YOU WIN!");
     cam.render();
-    lastTimestamp = time;
     frameID = window.requestAnimationFrame(tick);
 }
 var UP, DOWN, LEFT, RIGHT, LEFT_MOUSE, RIGHT_MOUSE;
@@ -505,6 +523,7 @@ class Player extends GameObject {
         this.maxAimTime = 900;
         this.indicator = new Sprite(globalThis.spritesheet.textures["arrow.png"]);
         this.sprite = new Sprite(img);
+        this.sprite.zIndex = 1;
         this.collider = new Collider(this, radius);
         this.indicator.pivot.set(this.indicator.width / 2, this.indicator.height + 10);
         this.indicator.width = 25;
@@ -525,6 +544,11 @@ class Player extends GameObject {
                 const collisionVector = Vector.fromPoints(this.collider.x, this.collider.y, col.x, col.y).normalize();
                 const faster = this.velocity.mag >= e.velocity.mag;
                 if (faster) {
+                    if (this.state === PlayerState.DASH) {
+                        e.sprite.height = this.sprite.width;
+                        e.sprite.width = 40;
+                        e.sprite.angle = this.sprite.angle;
+                    }
                     e.velocity.set(Vector.mult(collisionVector, this.velocity.mag));
                     this.velocity.set(Vector.mult(collisionVector, -1));
                 }
@@ -533,7 +557,7 @@ class Player extends GameObject {
                     e.velocity.set(Vector.mult(collisionVector, 1));
                 }
                 this.state = PlayerState.KNOCK_BACK;
-                e.state = EnemyState.KNOCK_BACK;
+                e.state = EnemyState.DASH_KNOCK_BACK;
             }
         });
         this.radius = radius;
@@ -635,6 +659,10 @@ class Player extends GameObject {
                 break;
             }
         }
+        if (frameHalt > 0)
+            return;
+        if (this.state !== PlayerState.DEAD)
+            this.sprite.width = 40 - (25 * (this.velocity.mag / this.maxDashMag));
         this.x += this.velocity.x;
         this.y += this.velocity.y;
         this.velocity.x *= this.friction;

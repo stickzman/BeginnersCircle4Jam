@@ -4,6 +4,7 @@ enum EnemyState {
     AIM,
     INACTIVE,
     KNOCK_BACK,
+    DASH_KNOCK_BACK,
     DASH,
     REST,
     RECOVERY
@@ -64,6 +65,14 @@ class Enemy extends GameObject {
                     e.velocity.set(Vector.mult(collisionVector, 1))
                 }
 
+                if (this.state === EnemyState.DASH_KNOCK_BACK ||
+                        e.state === EnemyState.DASH_KNOCK_BACK
+                    ) {
+                    this.state = EnemyState.DASH_KNOCK_BACK
+                    e.state = EnemyState.DASH_KNOCK_BACK
+                    // globalThis.frameHalt = 15
+                }
+
                 this.state = EnemyState.KNOCK_BACK
                 e.state = EnemyState.KNOCK_BACK
                 col.touching.add(this.collider)
@@ -79,6 +88,7 @@ class Enemy extends GameObject {
                     this.velocity.normalize().mult(-5)
                     this.state = EnemyState.KNOCK_BACK
                 } else {
+                    this.radius = 20
                     this.state = EnemyState.DEAD
                 }
             }
@@ -134,7 +144,7 @@ class Enemy extends GameObject {
     update() {
         switch (this.state) {
             case EnemyState.DEAD: {
-                // Shrink player (like they're falling)
+                // Shrink enemy (like they're falling)
                 this.radius -= 0.5
                 this.sprite.angle += 3
                 if (this.radius <= 0) {
@@ -143,6 +153,7 @@ class Enemy extends GameObject {
                 break
             }
             case EnemyState.AIM: {
+                this.radius = 20
                 let angleAligned = false
                 let rotClockwise: boolean
                 // Aim towards target
@@ -175,6 +186,7 @@ class Enemy extends GameObject {
                 }
                 break
             }
+            case EnemyState.DASH_KNOCK_BACK:
             case EnemyState.RECOVERY:
             case EnemyState.KNOCK_BACK: {
                 this.indicator.height = 0
@@ -192,7 +204,7 @@ class Enemy extends GameObject {
                 break
             }
             case EnemyState.DASH: {
-                // this.indicator.height = 0
+                this.sprite.width = 30
                 this.x += this.velocity.x * this.dashSpeed
                 this.y += this.velocity.y * this.dashSpeed
                 if (Vector.dist(this.pos, this.dashEnd) < 2) {
@@ -203,7 +215,18 @@ class Enemy extends GameObject {
             }
         }
 
-        if (this.state == EnemyState.DASH) return // Don't do velocity in a dash
+        // Don't change sprite/do velocity if frameHalt, inactive, or dashing
+        if (frameHalt > 0) return
+        // Don't do velocity in a dash
+        if (this.state == EnemyState.DASH || this.state === EnemyState.INACTIVE)
+            return
+
+        // Stretch sprite
+        if (this.state !== EnemyState.DEAD) {
+            this.sprite.height = 40
+            this.sprite.width = 40 - (10 * (this.velocity.mag/this.dashSpeed))
+        }
+
         // Update position
         this.x += this.velocity.x
         this.y += this.velocity.y
