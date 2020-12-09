@@ -185,6 +185,7 @@ var EnemyState;
     EnemyState[EnemyState["KNOCK_BACK"] = 3] = "KNOCK_BACK";
     EnemyState[EnemyState["DASH"] = 4] = "DASH";
     EnemyState[EnemyState["REST"] = 5] = "REST";
+    EnemyState[EnemyState["RECOVERY"] = 6] = "RECOVERY";
 })(EnemyState || (EnemyState = {}));
 class Enemy extends GameObject {
     constructor(x = 1, y = 1, radius = 20) {
@@ -192,7 +193,7 @@ class Enemy extends GameObject {
         this.velocity = new Vector(0, 0);
         this.friction = .9;
         this.pos = new Vector(1, 1);
-        this.aimSpeed = 0.02;
+        this.aimSpeed = 0.05;
         this.chargeSpeed = 5;
         this.maxChargeSpeed = 400;
         this.dashMag = 250;
@@ -212,6 +213,8 @@ class Enemy extends GameObject {
         this.collider.on("enter", (col) => {
             if (col.gameObj.tag === "enemy") {
                 const e = col.gameObj;
+                if (e.state === EnemyState.DEAD || e.state === EnemyState.INACTIVE)
+                    return;
                 const collisionVector = Vector.fromPoints(this.collider.x, this.collider.y, col.x, col.y).normalize();
                 const faster = this.velocity.mag >= e.velocity.mag;
                 if (faster) {
@@ -230,7 +233,14 @@ class Enemy extends GameObject {
         this.radius = radius;
         this.collider.on("exit", (col) => {
             if (col.gameObj.tag === "platform") {
-                this.state = EnemyState.DEAD;
+                if (Math.random() < 0.5 && (this.state === EnemyState.DASH ||
+                    this.state === EnemyState.RECOVERY)) {
+                    this.velocity.normalize().mult(-5);
+                    this.state = EnemyState.KNOCK_BACK;
+                }
+                else {
+                    this.state = EnemyState.DEAD;
+                }
             }
         });
         this.x = x;
@@ -308,7 +318,6 @@ class Enemy extends GameObject {
                     this.indicator.height += this.chargeSpeed;
                 }
                 else if (angleAligned) {
-                    this.indicator.height = 0;
                     const v = Vector.fromVectors(this.pos, this.target);
                     this.velocity.set(v.normalize());
                     this.dashEnd = Vector.add(this.pos, v.mult(this.dashMag));
@@ -316,6 +325,7 @@ class Enemy extends GameObject {
                 }
                 break;
             }
+            case EnemyState.RECOVERY:
             case EnemyState.KNOCK_BACK: {
                 this.indicator.height = 0;
                 if (this.velocity.mag < 0.25) {
@@ -332,12 +342,11 @@ class Enemy extends GameObject {
                 break;
             }
             case EnemyState.DASH: {
-                this.indicator.height = 0;
                 this.x += this.velocity.x * this.dashSpeed;
                 this.y += this.velocity.y * this.dashSpeed;
                 if (Vector.dist(this.pos, this.dashEnd) < 2) {
                     this.velocity.mult(this.dashSpeed);
-                    this.state = EnemyState.KNOCK_BACK;
+                    this.state = EnemyState.RECOVERY;
                 }
                 break;
             }
@@ -387,7 +396,7 @@ function init(loader, resources) {
         if (col.gameObj.tag === "platform")
             console.log("YOU DIED");
     });
-    Enemy.spawn(10);
+    Enemy.spawn(5);
     lastTimestamp = performance.now();
     window.requestAnimationFrame(tick);
 }
@@ -507,8 +516,12 @@ class Player extends GameObject {
             }
         });
         this.collider.on("enter", (col) => {
+            if (this.state === PlayerState.DEAD)
+                return;
             if (col.gameObj.tag === "enemy") {
                 const e = col.gameObj;
+                if (e.state === EnemyState.DEAD || e.state === EnemyState.INACTIVE)
+                    return;
                 const collisionVector = Vector.fromPoints(this.collider.x, this.collider.y, col.x, col.y).normalize();
                 const faster = this.velocity.mag >= e.velocity.mag;
                 if (faster) {

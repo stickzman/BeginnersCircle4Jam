@@ -40,8 +40,10 @@ class Player extends GameObject {
             }
         })
         this.collider.on("enter", (col: Collider) => {
+            if (this.state === PlayerState.DEAD) return // Do nothing if dead
             if (col.gameObj.tag === "enemy") {
                 const e = <Enemy>col.gameObj
+                if (e.state === EnemyState.DEAD || e.state === EnemyState.INACTIVE) return
                 // Circle collision resolution/bouncing
                 const collisionVector = Vector.fromPoints(this.collider.x, this.collider.y, col.x, col.y).normalize()
                 const faster = this.velocity.mag >= e.velocity.mag

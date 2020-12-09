@@ -5,7 +5,8 @@ enum EnemyState {
     INACTIVE,
     KNOCK_BACK,
     DASH,
-    REST
+    REST,
+    RECOVERY
 }
 
 class Enemy extends GameObject {
@@ -21,7 +22,7 @@ class Enemy extends GameObject {
 
     target: Vector
 
-    aimSpeed: number = 0.02
+    aimSpeed: number = 0.05
     chargeSpeed: number = 5
     maxChargeSpeed: number = 400
     dashMag: number = 250
@@ -49,6 +50,7 @@ class Enemy extends GameObject {
         this.collider.on("enter", (col: Collider) => {
             if (col.gameObj.tag === "enemy") {
                 const e = <Enemy>col.gameObj
+                if (e.state === EnemyState.DEAD || e.state === EnemyState.INACTIVE) return
                 // Circle collision resolution/bouncing
                 const collisionVector = Vector.fromPoints(this.collider.x, this.collider.y, col.x, col.y).normalize()
                 const faster = this.velocity.mag >= e.velocity.mag
@@ -70,7 +72,15 @@ class Enemy extends GameObject {
         this.radius = radius
         this.collider.on("exit", (col: Collider) => {
             if (col.gameObj.tag === "platform") {
-                this.state = EnemyState.DEAD
+                // 50% chance they 'catch' themselves before going over edge
+                if (Math.random() < 0.5 && (this.state === EnemyState.DASH ||
+                                          this.state === EnemyState.RECOVERY)
+                ) {
+                    this.velocity.normalize().mult(-5)
+                    this.state = EnemyState.KNOCK_BACK
+                } else {
+                    this.state = EnemyState.DEAD
+                }
             }
         })
         this.x = x
@@ -157,8 +167,6 @@ class Enemy extends GameObject {
                     this.indicator.height += this.chargeSpeed
                 } else if (angleAligned) {
                     // Enter dash
-                    this.indicator.height = 0
-
                     const v = Vector.fromVectors(this.pos, this.target)
                     this.velocity.set(v.normalize())
                     this.dashEnd = Vector.add(this.pos, v.mult(this.dashMag))
@@ -167,6 +175,7 @@ class Enemy extends GameObject {
                 }
                 break
             }
+            case EnemyState.RECOVERY:
             case EnemyState.KNOCK_BACK: {
                 this.indicator.height = 0
                 if (this.velocity.mag < 0.25) {
@@ -183,12 +192,12 @@ class Enemy extends GameObject {
                 break
             }
             case EnemyState.DASH: {
-                this.indicator.height = 0
+                // this.indicator.height = 0
                 this.x += this.velocity.x * this.dashSpeed
                 this.y += this.velocity.y * this.dashSpeed
                 if (Vector.dist(this.pos, this.dashEnd) < 2) {
                     this.velocity.mult(this.dashSpeed)
-                    this.state = EnemyState.KNOCK_BACK
+                    this.state = EnemyState.RECOVERY
                 }
                 break
             }
