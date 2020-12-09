@@ -57,7 +57,7 @@ class Sprite extends PIXI.Sprite {
 class Camera {
     constructor(selector = "body", x = 0, y = 0) {
         this.renderer = PIXI.autoDetectRenderer();
-        this.renderer.backgroundColor = 0x000000;
+        this.renderer.backgroundColor = 0x010203;
         document.querySelector(selector).appendChild(this.renderer.view);
         this.width = this.renderer.width;
         this.height = this.renderer.height;
@@ -165,34 +165,44 @@ class GameObject {
 var EnemyState;
 (function (EnemyState) {
     EnemyState[EnemyState["DEAD"] = 0] = "DEAD";
-    EnemyState[EnemyState["MOVE"] = 1] = "MOVE";
+    EnemyState[EnemyState["AIM"] = 1] = "AIM";
     EnemyState[EnemyState["INACTIVE"] = 2] = "INACTIVE";
+    EnemyState[EnemyState["KNOCK_BACK"] = 3] = "KNOCK_BACK";
 })(EnemyState || (EnemyState = {}));
 class Enemy extends GameObject {
-    constructor(x = 0, y = 0, radius = 20) {
+    constructor(x = 1, y = 1, radius = 20) {
         super("enemy");
         this.velocity = new Vector(0, 0);
         this.friction = .9;
+        this.aimSpeed = 0.01;
         this._x = 0;
         this._y = 0;
         this._r = 0;
+        this._rot = 0;
+        this.maxAimLength = 400;
+        this.target = globalThis.player.pos;
+        this.indicator = new Graphic();
+        this.indicator.lineStyle(5, 0x000000, 0.5);
+        this.indicator.moveTo(0, 0);
+        this.indicator.lineTo(0, -1);
+        this.indicator.height = 0;
         this.sprite = new Sprite(globalThis.spritesheet.textures["enemy.png"]);
         this.collider = new Collider(this, radius);
         this.collider.on("exit", (col) => {
             if (col.gameObj.tag === "platform") {
                 this.state = EnemyState.DEAD;
-                this.initialRadius = this.radius;
             }
         });
         this.x = x;
         this.y = y;
         this.radius = radius;
-        this.state = EnemyState.MOVE;
+        this.state = EnemyState.AIM;
         Enemy.enemies.push(this);
     }
     set x(x) {
         this._x = x;
         this.sprite.x = x;
+        this.indicator.x = x;
         this.collider.x = x;
     }
     get x() {
@@ -201,6 +211,7 @@ class Enemy extends GameObject {
     set y(y) {
         this._y = y;
         this.sprite.y = y;
+        this.indicator.y = y;
         this.collider.y = y;
     }
     get y() {
@@ -214,6 +225,14 @@ class Enemy extends GameObject {
     get radius() {
         return this._r;
     }
+    set rotation(r) {
+        this._rot = r;
+        this.sprite.rotation = r;
+        this.indicator.rotation = r;
+    }
+    get rotation() {
+        return this._rot;
+    }
     update() {
         switch (this.state) {
             case EnemyState.DEAD: {
@@ -221,6 +240,30 @@ class Enemy extends GameObject {
                 this.sprite.angle += 3;
                 if (this.radius <= 0) {
                     this.state = EnemyState.INACTIVE;
+                }
+                break;
+            }
+            case EnemyState.AIM: {
+                let angleAligned = false;
+                const angleOfRot = Math.atan2(this.target.x - this.x, this.y - this.target.y);
+                if (Math.abs(angleOfRot - this.rotation) < this.aimSpeed) {
+                    angleAligned = true;
+                }
+                else if (angleOfRot > this.rotation) {
+                    this.rotation += this.aimSpeed;
+                }
+                else {
+                    this.rotation -= this.aimSpeed;
+                }
+                if (this.indicator.height < this.maxAimLength) {
+                    this.indicator.height += 2;
+                }
+                break;
+            }
+            case EnemyState.KNOCK_BACK: {
+                this.indicator.height = 0;
+                if (this.velocity.mag < 0.25) {
+                    this.state = EnemyState.AIM;
                 }
                 break;
             }
@@ -247,7 +290,7 @@ class Enemy extends GameObject {
 Enemy.enemies = [];
 const cam = new Camera();
 const stage = Camera.stage;
-let player;
+var player;
 let lastTimestamp;
 PIXI.Loader.shared
     .add("sheet", "./spritesheets/sheet.json")
@@ -256,12 +299,12 @@ function init(loader, resources) {
     const sheet = resources["sheet"].spritesheet;
     globalThis.spritesheet = sheet;
     new Platform();
-    Enemy.spawn(10);
     player = new Player(sheet.textures["player.png"]);
     player.collider.on("exit", col => {
         if (col.gameObj.tag === "platform")
             console.log("YOU DIED");
     });
+    new Enemy(100, 100);
     lastTimestamp = performance.now();
     window.requestAnimationFrame(tick);
 }
@@ -340,8 +383,7 @@ document.querySelector("canvas").addEventListener("contextmenu", e => {
 class Platform extends GameObject {
     constructor() {
         super("platform");
-        const graphic = new PIXI.Graphics();
-        graphic.lineStyle(2, 0x000000000);
+        const graphic = new Graphic();
         graphic.beginFill(0xFFFFFF);
         graphic.drawCircle(0, 0, cam.height / 2 - 10);
         graphic.endFill();
@@ -358,16 +400,15 @@ var PlayerState;
     PlayerState[PlayerState["KNOCK_BACK"] = 4] = "KNOCK_BACK";
 })(PlayerState || (PlayerState = {}));
 class Player extends GameObject {
-    constructor(img, radius = 15) {
+    constructor(img, radius = 20) {
         super("player");
         this.speed = 3;
         this.state = PlayerState.MOVE;
+        this.pos = new Vector(0, 0);
         this.velocity = new Vector(0, 0);
         this.friction = .9;
         this.maxDashMag = 30;
         this.maxAimTime = 900;
-        this._x = 0;
-        this._y = 0;
         this.indicator = new Sprite(globalThis.spritesheet.textures["arrow.png"]);
         this.sprite = new Sprite(img);
         this.collider = new Collider(this, radius);
@@ -387,28 +428,29 @@ class Player extends GameObject {
                 e.velocity.set(Vector.mult(collisionVector, this.velocity.mag));
                 this.velocity.set(Vector.mult(collisionVector, -1));
                 this.state = PlayerState.KNOCK_BACK;
+                e.state = EnemyState.KNOCK_BACK;
             }
         });
         this.radius = radius;
         this.initialRadius = radius;
     }
     set x(x) {
-        this._x = x;
+        this.pos.x = x;
         this.sprite.x = x;
         this.indicator.x = x;
         this.collider.x = x;
     }
     get x() {
-        return this._x;
+        return this.pos.x;
     }
     set y(y) {
-        this._y = y;
+        this.pos.y = y;
         this.sprite.y = y;
         this.indicator.y = y;
         this.collider.y = y;
     }
     get y() {
-        return this._y;
+        return this.pos.y;
     }
     set radius(r) {
         this._r = r;
@@ -478,11 +520,13 @@ class Player extends GameObject {
                 else if (this.velocity.mag < this.speed / 2) {
                     this.state = PlayerState.MOVE;
                 }
+                break;
             }
             case PlayerState.KNOCK_BACK: {
                 if (this.velocity.mag < 0.5) {
                     this.state = PlayerState.MOVE;
                 }
+                break;
             }
         }
         this.x += this.velocity.x;
@@ -553,6 +597,12 @@ class Vector {
     }
     static div(v, n) {
         return v.copy().div(n);
+    }
+}
+class Graphic extends PIXI.Graphics {
+    constructor() {
+        super();
+        Camera.stage.addChild(this);
     }
 }
 //# sourceMappingURL=index.js.map

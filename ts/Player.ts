@@ -13,6 +13,7 @@ class Player extends GameObject {
     speed: number = 3
     collider: Collider
     state: PlayerState = PlayerState.MOVE
+    pos = new Vector(0, 0)
     velocity = new Vector(0, 0)
     friction: number = .9
 
@@ -20,12 +21,10 @@ class Player extends GameObject {
     startAimTime: number
     maxAimTime: number = 900
 
-    private _x: number = 0
-    private _y: number = 0
     private _r: number
     private initialRadius: number
 
-    constructor(img: PIXI.Texture, radius: number = 15) {
+    constructor(img: PIXI.Texture, radius: number = 20) {
         super("player")
         this.indicator = new Sprite(globalThis.spritesheet.textures["arrow.png"])
         this.sprite = new Sprite(img)
@@ -50,6 +49,7 @@ class Player extends GameObject {
                 this.velocity.set(Vector.mult(collisionVector, -1))
 
                 this.state = PlayerState.KNOCK_BACK
+                e.state = EnemyState.KNOCK_BACK
             }
         })
         this.radius = radius
@@ -57,23 +57,23 @@ class Player extends GameObject {
     }
 
     set x(x: number) {
-        this._x = x
+        this.pos.x = x
         this.sprite.x = x
         this.indicator.x = x
         this.collider.x = x
     }
     get x(): number {
-        return this._x
+        return this.pos.x
     }
 
     set y(y: number) {
-        this._y = y
+        this.pos.y = y
         this.sprite.y = y
         this.indicator.y = y
         this.collider.y = y
     }
     get y(): number {
-        return this._y
+        return this.pos.y
     }
 
     set radius(r: number) {
@@ -155,11 +155,13 @@ class Player extends GameObject {
                 } else if (this.velocity.mag < this.speed/2) {
                     this.state = PlayerState.MOVE
                 }
+                break
             }
             case PlayerState.KNOCK_BACK: {
                 if (this.velocity.mag < 0.5) {
                     this.state = PlayerState.MOVE
                 }
+                break
             }
         }
 

@@ -3,7 +3,7 @@
 
 const cam = new Camera()
 const stage = Camera.stage
-let player: Player
+var player: Player
 let lastTimestamp: number
 
 PIXI.Loader.shared
@@ -15,12 +15,13 @@ function init(loader, resources) {
     globalThis.spritesheet = sheet
 
     new Platform()
-    Enemy.spawn(10)
 
     player = new Player(sheet.textures["player.png"])
     player.collider.on("exit", col => {
         if (col.gameObj.tag === "platform") console.log("YOU DIED")
     })
+
+    new Enemy(100, 100)
 
     lastTimestamp = performance.now()
     window.requestAnimationFrame(tick)

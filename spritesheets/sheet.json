@@ -2,7 +2,7 @@
 
 "arrow.png":
 {
-	"frame": {"x":0,"y":0,"w":35,"h":100},
+	"frame": {"x":205,"y":1,"w":35,"h":100},
 	"rotated": false,
 	"trimmed": false,
 	"spriteSourceSize": {"x":0,"y":0,"w":35,"h":100},
@@ -10,7 +10,7 @@
 },
 "enemy.png":
 {
-	"frame": {"x":35,"y":0,"w":100,"h":100},
+	"frame": {"x":1,"y":1,"w":100,"h":100},
 	"rotated": false,
 	"trimmed": false,
 	"spriteSourceSize": {"x":0,"y":0,"w":100,"h":100},
@@ -18,7 +18,7 @@
 },
 "player.png":
 {
-	"frame": {"x":135,"y":0,"w":100,"h":100},
+	"frame": {"x":103,"y":1,"w":100,"h":100},
 	"rotated": false,
 	"trimmed": false,
 	"spriteSourceSize": {"x":0,"y":0,"w":100,"h":100},
@@ -29,8 +29,8 @@
 	"version": "1.0",
 	"image": "sheet.png",
 	"format": "RGBA8888",
-	"size": {"w":235,"h":100},
+	"size": {"w":241,"h":102},
 	"scale": "1",
-	"smartupdate": "$TexturePacker:SmartUpdate:c4b0e105686be0bf18bd01ef78f47c88:d6ea3ca019138dfbdf655c89c547027a:9c44ecd7e9a522007eaff2949095bc1d$"
+	"smartupdate": "$TexturePacker:SmartUpdate:107f8579a15c05c8a42ba43a592e902d:f056d8c92c49c79efbf41f2185a5435b:9c44ecd7e9a522007eaff2949095bc1d$"
 }
 }
