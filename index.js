@@ -168,22 +168,27 @@ var EnemyState;
     EnemyState[EnemyState["AIM"] = 1] = "AIM";
     EnemyState[EnemyState["INACTIVE"] = 2] = "INACTIVE";
     EnemyState[EnemyState["KNOCK_BACK"] = 3] = "KNOCK_BACK";
+    EnemyState[EnemyState["DASH"] = 4] = "DASH";
+    EnemyState[EnemyState["REST"] = 5] = "REST";
 })(EnemyState || (EnemyState = {}));
 class Enemy extends GameObject {
     constructor(x = 1, y = 1, radius = 20) {
         super("enemy");
         this.velocity = new Vector(0, 0);
         this.friction = .9;
-        this.aimSpeed = 0.015;
+        this.pos = new Vector(1, 1);
+        this.aimSpeed = 0.02;
         this.chargeSpeed = 5;
         this.maxChargeSpeed = 400;
-        this._x = 0;
-        this._y = 0;
+        this.dashMag = 250;
+        this.dashSpeed = 10;
+        this.restTime = 0;
+        this.restStart = 0;
         this._r = 0;
         this._rot = 0;
         this.target = globalThis.player.pos;
         this.indicator = new Graphic();
-        this.indicator.lineStyle(5, 0x000000, 0.5);
+        this.indicator.lineStyle(5, 0xec1c24, 0.5);
         this.indicator.moveTo(0, 0);
         this.indicator.lineTo(0, -1);
         this.indicator.height = 0;
@@ -201,22 +206,22 @@ class Enemy extends GameObject {
         Enemy.enemies.push(this);
     }
     set x(x) {
-        this._x = x;
+        this.pos.x = x;
         this.sprite.x = x;
         this.indicator.x = x;
         this.collider.x = x;
     }
     get x() {
-        return this._x;
+        return this.pos.x;
     }
     set y(y) {
-        this._y = y;
+        this.pos.y = y;
         this.sprite.y = y;
         this.indicator.y = y;
         this.collider.y = y;
     }
     get y() {
-        return this._y;
+        return this.pos.y;
     }
     set radius(r) {
         this._r = r;
@@ -259,16 +264,43 @@ class Enemy extends GameObject {
                 if (this.indicator.height < this.maxChargeSpeed) {
                     this.indicator.height += this.chargeSpeed;
                 }
+                else if (angleAligned) {
+                    this.indicator.height = 0;
+                    const v = Vector.fromVectors(this.pos, this.target);
+                    this.velocity.set(v.normalize());
+                    this.dashEnd = Vector.add(this.pos, v.mult(this.dashMag));
+                    this.state = EnemyState.DASH;
+                }
                 break;
             }
             case EnemyState.KNOCK_BACK: {
                 this.indicator.height = 0;
                 if (this.velocity.mag < 0.25) {
+                    this.restStart = performance.now();
+                    this.restTime = Math.random() * 2000;
+                    this.state = EnemyState.REST;
+                }
+                break;
+            }
+            case EnemyState.REST: {
+                if (performance.now() - this.restStart > this.restTime) {
                     this.state = EnemyState.AIM;
                 }
                 break;
             }
+            case EnemyState.DASH: {
+                this.indicator.height = 0;
+                this.x += this.velocity.x * this.dashSpeed;
+                this.y += this.velocity.y * this.dashSpeed;
+                if (Vector.dist(this.pos, this.dashEnd) < 2) {
+                    this.velocity.mult(10);
+                    this.state = EnemyState.KNOCK_BACK;
+                }
+                break;
+            }
         }
+        if (this.state == EnemyState.DASH)
+            return;
         this.x += this.velocity.x;
         this.y += this.velocity.y;
         this.velocity.x *= this.friction;
@@ -289,6 +321,12 @@ class Enemy extends GameObject {
     }
 }
 Enemy.enemies = [];
+class Graphic extends PIXI.Graphics {
+    constructor() {
+        super();
+        Camera.stage.addChild(this);
+    }
+}
 const cam = new Camera();
 const stage = Camera.stage;
 var player;
@@ -306,7 +344,7 @@ function init(loader, resources) {
         if (col.gameObj.tag === "platform")
             console.log("YOU DIED");
     });
-    enemy = new Enemy(100, 100);
+    Enemy.spawn(5);
     lastTimestamp = performance.now();
     window.requestAnimationFrame(tick);
 }
@@ -409,7 +447,8 @@ class Player extends GameObject {
         this.pos = new Vector(0, 0);
         this.velocity = new Vector(0, 0);
         this.friction = .9;
-        this.maxDashMag = 30;
+        this.knockBackMag = 20;
+        this.maxDashMag = 35;
         this.maxAimTime = 900;
         this.indicator = new Sprite(globalThis.spritesheet.textures["arrow.png"]);
         this.sprite = new Sprite(img);
@@ -427,8 +466,15 @@ class Player extends GameObject {
             if (col.gameObj.tag === "enemy") {
                 const e = col.gameObj;
                 const collisionVector = Vector.fromPoints(this.collider.x, this.collider.y, col.x, col.y).normalize();
-                e.velocity.set(Vector.mult(collisionVector, this.velocity.mag));
-                this.velocity.set(Vector.mult(collisionVector, -1));
+                const faster = this.velocity.mag >= e.velocity.mag;
+                if (faster) {
+                    e.velocity.set(Vector.mult(collisionVector, this.velocity.mag));
+                    this.velocity.set(Vector.mult(collisionVector, -1));
+                }
+                else {
+                    this.velocity.set(Vector.mult(collisionVector, -this.knockBackMag));
+                    e.velocity.set(Vector.mult(collisionVector, 1));
+                }
                 this.state = PlayerState.KNOCK_BACK;
                 e.state = EnemyState.KNOCK_BACK;
             }
@@ -525,6 +571,7 @@ class Player extends GameObject {
                 break;
             }
             case PlayerState.KNOCK_BACK: {
+                this.indicator.height = 0;
                 if (this.velocity.mag < 0.5) {
                     this.state = PlayerState.MOVE;
                 }
@@ -600,11 +647,11 @@ class Vector {
     static div(v, n) {
         return v.copy().div(n);
     }
-}
-class Graphic extends PIXI.Graphics {
-    constructor() {
-        super();
-        Camera.stage.addChild(this);
+    static add(v1, v2) {
+        return new Vector(v1.x + v2.x, v1.y + v2.y);
+    }
+    static dist(v1, v2) {
+        return Math.sqrt(Math.pow((v2.x - v1.x), 2) + Math.pow((v2.y - v1.y), 2));
     }
 }
 //# sourceMappingURL=index.js.map

@@ -56,4 +56,12 @@ class Vector {
     static div(v: Vector, n: number) {
         return v.copy().div(n)
     }
+
+    static add(v1: Vector, v2: Vector) {
+        return new Vector(v1.x + v2.x, v1.y + v2.y)
+    }
+
+    static dist(v1: Vector, v2: Vector) {
+        return Math.sqrt((v2.x - v1.x)**2 + (v2.y - v1.y)**2)
+    }
 }

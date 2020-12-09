@@ -3,7 +3,9 @@ enum EnemyState {
     DEAD,
     AIM,
     INACTIVE,
-    KNOCK_BACK
+    KNOCK_BACK,
+    DASH,
+    REST
 }
 
 class Enemy extends GameObject {
@@ -15,15 +17,20 @@ class Enemy extends GameObject {
     velocity = new Vector(0, 0)
     friction: number = .9
     state: EnemyState
+    pos = new Vector(1, 1)
 
     target: Vector
 
-    aimSpeed: number = 0.015
+    aimSpeed: number = 0.02
     chargeSpeed: number = 5
     maxChargeSpeed: number = 400
+    dashMag: number = 250
+    dashSpeed: number = 10
+    dashEnd: Vector
 
-    private _x: number = 0
-    private _y: number = 0
+    restTime: number = 0
+    restStart: number = 0
+
     private _r: number = 0
     private _rot: number = 0
 
@@ -33,7 +40,7 @@ class Enemy extends GameObject {
         this.target = globalThis.player.pos
 
         this.indicator = new Graphic()
-        this.indicator.lineStyle(5, 0x000000, 0.5)
+        this.indicator.lineStyle(5, 0xec1c24, 0.5)
         this.indicator.moveTo(0, 0)
         this.indicator.lineTo(0, -1)
         this.indicator.height = 0
@@ -52,23 +59,23 @@ class Enemy extends GameObject {
     }
 
     set x(x: number) {
-        this._x = x
+        this.pos.x = x
         this.sprite.x = x
         this.indicator.x = x
         this.collider.x = x
     }
     get x(): number {
-        return this._x
+        return this.pos.x
     }
 
     set y(y: number) {
-        this._y = y
+        this.pos.y = y
         this.sprite.y = y
         this.indicator.y = y
         this.collider.y = y
     }
     get y(): number {
-        return this._y
+        return this.pos.y
     }
 
     set radius(r: number) {
@@ -117,18 +124,46 @@ class Enemy extends GameObject {
                 // Pull back bow
                 if (this.indicator.height < this.maxChargeSpeed) {
                     this.indicator.height += this.chargeSpeed
+                } else if (angleAligned) {
+                    // Enter dash
+                    this.indicator.height = 0
+
+                    const v = Vector.fromVectors(this.pos, this.target)
+                    this.velocity.set(v.normalize())
+                    this.dashEnd = Vector.add(this.pos, v.mult(this.dashMag))
+
+                    this.state = EnemyState.DASH
                 }
                 break
             }
             case EnemyState.KNOCK_BACK: {
                 this.indicator.height = 0
                 if (this.velocity.mag < 0.25) {
+                    this.restStart = performance.now()
+                    this.restTime = Math.random() * 2000
+                    this.state = EnemyState.REST
+                }
+                break
+            }
+            case EnemyState.REST: {
+                if (performance.now() - this.restStart > this.restTime) {
                     this.state = EnemyState.AIM
+                }
+                break
+            }
+            case EnemyState.DASH: {
+                this.indicator.height = 0
+                this.x += this.velocity.x * this.dashSpeed
+                this.y += this.velocity.y * this.dashSpeed
+                if (Vector.dist(this.pos, this.dashEnd) < 2) {
+                    this.velocity.mult(10)
+                    this.state = EnemyState.KNOCK_BACK
                 }
                 break
             }
         }
 
+        if (this.state == EnemyState.DASH) return // Don't do velocity in a dash
         // Update position
         this.x += this.velocity.x
         this.y += this.velocity.y

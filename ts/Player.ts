@@ -16,8 +16,9 @@ class Player extends GameObject {
     pos = new Vector(0, 0)
     velocity = new Vector(0, 0)
     friction: number = .9
+    knockBackMag: number = 20
 
-    maxDashMag: number = 30
+    maxDashMag: number = 35
     startAimTime: number
     maxAimTime: number = 900
 
@@ -43,10 +44,16 @@ class Player extends GameObject {
                 const e = <Enemy>col.gameObj
                 // Circle collision resolution/bouncing
                 const collisionVector = Vector.fromPoints(this.collider.x, this.collider.y, col.x, col.y).normalize()
-                // Enemy rebound velocity
-                e.velocity.set(Vector.mult(collisionVector, this.velocity.mag))
-                // Player rebound velocity
-                this.velocity.set(Vector.mult(collisionVector, -1))
+                const faster = this.velocity.mag >= e.velocity.mag
+                if (faster) {
+                    // Enemy rebound velocity
+                    e.velocity.set(Vector.mult(collisionVector, this.velocity.mag))
+                    // Player rebound velocity
+                    this.velocity.set(Vector.mult(collisionVector, -1))
+                } else {
+                    this.velocity.set(Vector.mult(collisionVector, -this.knockBackMag))
+                    e.velocity.set(Vector.mult(collisionVector, 1))
+                }
 
                 this.state = PlayerState.KNOCK_BACK
                 e.state = EnemyState.KNOCK_BACK
@@ -138,7 +145,6 @@ class Player extends GameObject {
                 if (!globalThis.LEFT_MOUSE) {
                     const dashMag = this.maxDashMag * percent
                     this.indicator.height = 0
-                    // console.log(percent, dashMag)
 
                     const p = this.screenPos
                     const v = Vector.fromPoints(p.x, p.y, globalThis.mouseX, globalThis.mouseY)
@@ -158,6 +164,7 @@ class Player extends GameObject {
                 break
             }
             case PlayerState.KNOCK_BACK: {
+                this.indicator.height = 0
                 if (this.velocity.mag < 0.5) {
                     this.state = PlayerState.MOVE
                 }
