@@ -22,8 +22,6 @@ class Player extends GameObject {
     startAimTime: number
     maxAimTime: number = 500
 
-    private _r: number
-    private initialRadius: number
     static hitSound = new Howl({
         src: ['./assets/audio/hit.wav']
     })
@@ -40,10 +38,13 @@ class Player extends GameObject {
         volume: 0.25
     })
 
-    constructor(img: PIXI.Texture, radius: number = 15) {
+    private _r: number
+    private initialRadius: number
+
+    constructor(radius: number = 15) {
         super("player")
         this.indicator = new Sprite(globalThis.spritesheet.textures["arrow.png"])
-        this.sprite = new Sprite(img)
+        this.sprite = new Sprite(globalThis.spritesheet.textures["player.png"])
         this.sprite.zIndex = 1
         this.collider = new Collider(this, radius)
         this.indicator.pivot.set(this.indicator.width/2, this.indicator.height + 10)
@@ -54,6 +55,7 @@ class Player extends GameObject {
                 this.state = PlayerState.DEAD
                 this.initialRadius = this.radius
                 Player.fallSound.play()
+                console.log("YOU DIED")
             }
         })
         this.collider.on("enter", (col: Collider) => {
@@ -240,5 +242,11 @@ class Player extends GameObject {
         this.y = 0
         this.velocity.set(0, 0)
         this.radius = this.initialRadius
+    }
+
+    reInitialize() {
+        Camera.stage.addChild(this.indicator)
+        Camera.stage.addChild(this.sprite)
+        Collider.allColliders.push(this.collider)
     }
 }

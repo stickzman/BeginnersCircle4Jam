@@ -1,13 +1,20 @@
 class Platform extends GameObject {
+    graphic: PIXI.Graphics
+    collider: Collider
+
     constructor() {
         super("platform")
 
-        const graphic = new Graphic()
-        graphic.beginFill(0xFFFFFF)
-        graphic.drawCircle(0, 0, cam.height/2-10)
-        graphic.endFill()
-        Camera.stage.addChild(graphic)
+        this.graphic = new Graphic()
+        this.graphic.beginFill(0xFFFFFF)
+        this.graphic.drawCircle(0, 0, cam.height/2-10)
+        this.graphic.endFill()
 
-        new Collider(this, cam.height/2-12)
+        this.collider = new Collider(this, cam.height/2-12)
+    }
+
+    reInitialize() {
+        Camera.stage.addChild(this.graphic)
+        Collider.allColliders.push(this.collider)
     }
 }

@@ -28,6 +28,19 @@ class Collider {
         this.listeners.push({eventType: event, callback: callback})
     }
 
+    destroy() {
+        this.touching.forEach(c => {
+            c.touching.delete(this)
+        })
+        this.touching.clear()
+        this.listeners = []
+        if (this.visual) this.visual.destroy()
+
+        Collider.allColliders = Collider.allColliders.filter(c => {
+            return c !== this 
+        })
+    }
+
     static update() {
         for (const col1 of Collider.allColliders) {
 

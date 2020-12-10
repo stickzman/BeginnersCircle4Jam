@@ -198,6 +198,18 @@ class Collider {
     on(event, callback) {
         this.listeners.push({ eventType: event, callback: callback });
     }
+    destroy() {
+        this.touching.forEach(c => {
+            c.touching.delete(this);
+        });
+        this.touching.clear();
+        this.listeners = [];
+        if (this.visual)
+            this.visual.destroy();
+        Collider.allColliders = Collider.allColliders.filter(c => {
+            return c !== this;
+        });
+    }
     static update() {
         for (const col1 of Collider.allColliders) {
             if (Collider.debug) {
@@ -467,6 +479,11 @@ class Enemy extends GameObject {
         if (Math.abs(this.velocity.y) < 0.1)
             this.velocity.y = 0;
     }
+    destroy() {
+        this.sprite.destroy();
+        this.indicator.destroy();
+        this.collider.destroy();
+    }
     static spawn(numEnemies, radius = 250, minRadius = 75) {
         for (let i = 0; i < numEnemies; i++) {
             let r = Math.floor((Math.random() * (radius - minRadius)) + minRadius);
@@ -475,6 +492,12 @@ class Enemy extends GameObject {
             let y = r * Math.cos(angle);
             new Enemy(x, y);
         }
+    }
+    static clear() {
+        for (const e of Enemy.enemies) {
+            e.destroy();
+        }
+        Enemy.enemies = [];
     }
 }
 Enemy.enemies = [];
@@ -521,23 +544,26 @@ class Graphic extends PIXI.Graphics {
 }
 var Howl;
 let cam = new Camera();
-const stage = Camera.stage;
 var player;
-var enemy;
+let platform;
 PIXI.Loader.shared
     .add("sheet", "./spritesheets/sheet.json")
     .load(init);
 function init(loader, resources) {
     const sheet = resources["sheet"].spritesheet;
     globalThis.spritesheet = sheet;
-    new Platform();
-    player = new Player(sheet.textures["player.png"]);
-    player.collider.on("exit", col => {
-        if (col.gameObj.tag === "platform")
-            console.log("YOU DIED");
-    });
-    Enemy.spawn(5);
+    platform = new Platform();
+    player = new Player();
+    new Enemy(50, 0);
+    new Enemy(100, 0);
+    new Enemy(150, 0);
+    new Enemy(200, 0);
+    new Enemy(250, 0);
     window.requestAnimationFrame(tick);
+}
+function reset() {
+    Enemy.clear();
+    player.respawn();
 }
 var frameID;
 var frameHalt = 0;
@@ -619,12 +645,15 @@ document.querySelector("canvas").addEventListener("contextmenu", e => {
 class Platform extends GameObject {
     constructor() {
         super("platform");
-        const graphic = new Graphic();
-        graphic.beginFill(0xFFFFFF);
-        graphic.drawCircle(0, 0, cam.height / 2 - 10);
-        graphic.endFill();
-        Camera.stage.addChild(graphic);
-        new Collider(this, cam.height / 2 - 12);
+        this.graphic = new Graphic();
+        this.graphic.beginFill(0xFFFFFF);
+        this.graphic.drawCircle(0, 0, cam.height / 2 - 10);
+        this.graphic.endFill();
+        this.collider = new Collider(this, cam.height / 2 - 12);
+    }
+    reInitialize() {
+        Camera.stage.addChild(this.graphic);
+        Collider.allColliders.push(this.collider);
     }
 }
 var PlayerState;
@@ -636,7 +665,7 @@ var PlayerState;
     PlayerState[PlayerState["KNOCK_BACK"] = 4] = "KNOCK_BACK";
 })(PlayerState || (PlayerState = {}));
 class Player extends GameObject {
-    constructor(img, radius = 15) {
+    constructor(radius = 15) {
         super("player");
         this.speed = 3;
         this.state = PlayerState.MOVE;
@@ -647,7 +676,7 @@ class Player extends GameObject {
         this.maxDashMag = 40;
         this.maxAimTime = 500;
         this.indicator = new Sprite(globalThis.spritesheet.textures["arrow.png"]);
-        this.sprite = new Sprite(img);
+        this.sprite = new Sprite(globalThis.spritesheet.textures["player.png"]);
         this.sprite.zIndex = 1;
         this.collider = new Collider(this, radius);
         this.indicator.pivot.set(this.indicator.width / 2, this.indicator.height + 10);
@@ -658,6 +687,7 @@ class Player extends GameObject {
                 this.state = PlayerState.DEAD;
                 this.initialRadius = this.radius;
                 Player.fallSound.play();
+                console.log("YOU DIED");
             }
         });
         this.collider.on("enter", (col) => {
@@ -822,6 +852,11 @@ class Player extends GameObject {
         this.y = 0;
         this.velocity.set(0, 0);
         this.radius = this.initialRadius;
+    }
+    reInitialize() {
+        Camera.stage.addChild(this.indicator);
+        Camera.stage.addChild(this.sprite);
+        Collider.allColliders.push(this.collider);
     }
 }
 Player.hitSound = new Howl({

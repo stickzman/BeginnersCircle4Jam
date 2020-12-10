@@ -284,6 +284,12 @@ class Enemy extends GameObject {
         if (Math.abs(this.velocity.y) < 0.1) this.velocity.y = 0
     }
 
+    destroy() {
+        this.sprite.destroy()
+        this.indicator.destroy()
+        this.collider.destroy()
+    }
+
     static spawn(numEnemies: number, radius: number = 250, minRadius: number = 75) {
         for (let i = 0; i < numEnemies; i++) {
             let r = Math.floor((Math.random() * (radius - minRadius)) + minRadius)
@@ -292,5 +298,12 @@ class Enemy extends GameObject {
             let y = r * Math.cos(angle)
             new Enemy(x, y)
         }
+    }
+
+    static clear() {
+        for (const e of Enemy.enemies) {
+            e.destroy()
+        }
+        Enemy.enemies = []
     }
 }
