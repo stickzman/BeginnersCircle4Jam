@@ -307,18 +307,20 @@ class Enemy extends GameObject {
                     e.state === EnemyState.DASH_KNOCK_BACK) {
                     this.state = EnemyState.DASH_KNOCK_BACK;
                     e.state = EnemyState.DASH_KNOCK_BACK;
-                    Camera.shake = 0.3;
+                    Camera.shake = 0.25;
                     globalThis.frameHalt = 5;
                 }
-                this.state = EnemyState.KNOCK_BACK;
-                e.state = EnemyState.KNOCK_BACK;
+                else {
+                    this.state = EnemyState.KNOCK_BACK;
+                    e.state = EnemyState.KNOCK_BACK;
+                }
                 col.touching.add(this.collider);
             }
         });
         this.radius = radius;
         this.collider.on("exit", (col) => {
             if (col.gameObj.tag === "platform") {
-                if (Math.random() < 0.5 && (this.state === EnemyState.DASH ||
+                if (Math.random() < 0.6 && (this.state === EnemyState.DASH ||
                     this.state === EnemyState.RECOVERY)) {
                     this.velocity.normalize().mult(-5);
                     this.state = EnemyState.KNOCK_BACK;
@@ -372,6 +374,7 @@ class Enemy extends GameObject {
     update() {
         switch (this.state) {
             case EnemyState.DEAD: {
+                this.indicator.height = 0;
                 this.radius -= 0.5;
                 this.sprite.angle += 3;
                 if (this.radius <= 0) {
@@ -589,7 +592,7 @@ var PlayerState;
     PlayerState[PlayerState["KNOCK_BACK"] = 4] = "KNOCK_BACK";
 })(PlayerState || (PlayerState = {}));
 class Player extends GameObject {
-    constructor(img, radius = 20) {
+    constructor(img, radius = 15) {
         super("player");
         this.speed = 3;
         this.state = PlayerState.MOVE;
@@ -624,10 +627,10 @@ class Player extends GameObject {
                 if (faster) {
                     if (this.state === PlayerState.DASH) {
                         e.sprite.angle = this.sprite.angle;
-                        Camera.shake = .5 * Math.sqrt(this.velocity.mag / this.maxDashMag);
+                        Camera.shake = .5 * (this.velocity.mag / this.maxDashMag + 0.1);
                         globalThis.frameHalt = 5;
+                        e.velocity.set(Vector.mult(collisionVector, this.velocity.mag));
                     }
-                    e.velocity.set(Vector.mult(collisionVector, this.velocity.mag));
                     this.velocity.set(Vector.mult(collisionVector, -1));
                 }
                 else {
@@ -741,7 +744,7 @@ class Player extends GameObject {
         if (frameHalt > 0)
             return;
         if (this.state !== PlayerState.DEAD)
-            this.sprite.width = 40 - (25 * (this.velocity.mag / this.maxDashMag));
+            this.sprite.width = this.radius * 2 - ((this.radius + 5) * (this.velocity.mag / this.maxDashMag));
         this.x += this.velocity.x;
         this.y += this.velocity.y;
         this.velocity.x *= this.friction;

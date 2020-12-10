@@ -25,7 +25,7 @@ class Player extends GameObject {
     private _r: number
     private initialRadius: number
 
-    constructor(img: PIXI.Texture, radius: number = 20) {
+    constructor(img: PIXI.Texture, radius: number = 15) {
         super("player")
         this.indicator = new Sprite(globalThis.spritesheet.textures["arrow.png"])
         this.sprite = new Sprite(img)
@@ -52,11 +52,11 @@ class Player extends GameObject {
                     if (this.state === PlayerState.DASH) {
                         // Squash enemy sprite, angle towards player
                         e.sprite.angle = this.sprite.angle
-                        Camera.shake = .5 * Math.sqrt(this.velocity.mag/this.maxDashMag)
+                        Camera.shake = .5 * (this.velocity.mag/this.maxDashMag + 0.1)
                         globalThis.frameHalt = 5
+                        // Enemy rebound velocity
+                        e.velocity.set(Vector.mult(collisionVector, this.velocity.mag))
                     }
-                    // Enemy rebound velocity
-                    e.velocity.set(Vector.mult(collisionVector, this.velocity.mag))
                     // Player rebound velocity
                     this.velocity.set(Vector.mult(collisionVector, -1))
                 } else {
@@ -186,7 +186,7 @@ class Player extends GameObject {
 
         // Stretch sprite
         if (this.state !== PlayerState.DEAD)
-            this.sprite.width = 40 - (25 * (this.velocity.mag/this.maxDashMag))
+            this.sprite.width = this.radius*2 - ((this.radius+5) * (this.velocity.mag/this.maxDashMag))
 
         // Update position
         this.x += this.velocity.x

@@ -70,12 +70,13 @@ class Enemy extends GameObject {
                     ) {
                     this.state = EnemyState.DASH_KNOCK_BACK
                     e.state = EnemyState.DASH_KNOCK_BACK
-                    Camera.shake = 0.3
+                    Camera.shake = 0.25
                     globalThis.frameHalt = 5
+                } else {
+                    this.state = EnemyState.KNOCK_BACK
+                    e.state = EnemyState.KNOCK_BACK
                 }
 
-                this.state = EnemyState.KNOCK_BACK
-                e.state = EnemyState.KNOCK_BACK
                 col.touching.add(this.collider)
             }
         })
@@ -83,7 +84,7 @@ class Enemy extends GameObject {
         this.collider.on("exit", (col: Collider) => {
             if (col.gameObj.tag === "platform") {
                 // 50% chance they 'catch' themselves before going over edge
-                if (Math.random() < 0.5 && (this.state === EnemyState.DASH ||
+                if (Math.random() < 0.6 && (this.state === EnemyState.DASH ||
                                           this.state === EnemyState.RECOVERY)
                 ) {
                     this.velocity.normalize().mult(-5)
@@ -145,6 +146,7 @@ class Enemy extends GameObject {
     update() {
         switch (this.state) {
             case EnemyState.DEAD: {
+                this.indicator.height = 0
                 // Shrink enemy (like they're falling)
                 this.radius -= 0.5
                 this.sprite.angle += 3
