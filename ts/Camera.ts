@@ -1,12 +1,20 @@
 /// <reference path="./Sprite.ts" />
+/// <reference path="./Vector.ts" />
 PIXI.settings.SORTABLE_CHILDREN = true
 
 class Camera {
+    static shake: number = 0 // Between 0 and 1
+    private maxShakeOffset: number = 20
+    private shakeDecrease = 0.02
+
     readonly renderer: PIXI.Renderer
     readonly width: number
     readonly height: number
+
     static stage: PIXI.Container
+
     private readonly rotationLayer: PIXI.Container
+    private pos: Vector = new Vector(0, 0)
 
     constructor(selector = "body", x = 0, y = 0) {
         this.renderer = PIXI.autoDetectRenderer()
@@ -28,19 +36,21 @@ class Camera {
     }
 
     set x(x: number) {
+        this.pos.x = x
         Camera.stage.x = this.width/2 - x
     }
 
     get x(): number {
-        return this.width/2 - Camera.stage.x
+        return this.pos.x
     }
 
     set y(y: number) {
+        this.pos.y = y
         Camera.stage.y = this.height/2 - y
     }
 
     get y(): number {
-        return this.height/2 - Camera.stage.y
+        return this.pos.y
     }
 
     set angle(a: number) {
@@ -57,6 +67,13 @@ class Camera {
     }
 
     render() {
+        if (Camera.shake > 0) {
+            const offsetX = this.maxShakeOffset * Camera.shake**2 * (Math.random() * 2 - 1)
+            const offsetY = this.maxShakeOffset * Camera.shake**2 * (Math.random() * 2 - 1)
+            Camera.stage.x = this.x + this.width/2 - offsetX
+            Camera.stage.y = this.y + this.height/2 - offsetY
+            Camera.shake -= this.shakeDecrease
+        }
         this.renderer.render(this.rotationLayer)
     }
 }

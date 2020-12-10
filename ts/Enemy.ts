@@ -24,7 +24,7 @@ class Enemy extends GameObject {
     target: Vector
 
     aimSpeed: number = 0.05
-    chargeSpeed: number = 5
+    chargeSpeed: number = 10
     maxChargeSpeed: number = 400
     dashMag: number = 250
     dashSpeed: number = 10
@@ -70,7 +70,8 @@ class Enemy extends GameObject {
                     ) {
                     this.state = EnemyState.DASH_KNOCK_BACK
                     e.state = EnemyState.DASH_KNOCK_BACK
-                    // globalThis.frameHalt = 15
+                    Camera.shake = 0.3
+                    globalThis.frameHalt = 5
                 }
 
                 this.state = EnemyState.KNOCK_BACK
@@ -223,7 +224,6 @@ class Enemy extends GameObject {
 
         // Stretch sprite
         if (this.state !== EnemyState.DEAD) {
-            this.sprite.height = 40
             this.sprite.width = 40 - (10 * (this.velocity.mag/this.dashSpeed))
         }
 

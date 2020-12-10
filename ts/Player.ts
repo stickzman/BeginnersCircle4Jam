@@ -51,16 +51,16 @@ class Player extends GameObject {
                 if (faster) {
                     if (this.state === PlayerState.DASH) {
                         // Squash enemy sprite, angle towards player
-                        e.sprite.height = this.sprite.width
-                        e.sprite.width = 40
                         e.sprite.angle = this.sprite.angle
-                        // globalThis.frameHalt = Math.floor(30 * (this.velocity.mag/this.maxDashMag))
+                        Camera.shake = .5 * Math.sqrt(this.velocity.mag/this.maxDashMag)
+                        globalThis.frameHalt = 5
                     }
                     // Enemy rebound velocity
                     e.velocity.set(Vector.mult(collisionVector, this.velocity.mag))
                     // Player rebound velocity
                     this.velocity.set(Vector.mult(collisionVector, -1))
                 } else {
+                    Camera.shake = 0.35
                     this.velocity.set(Vector.mult(collisionVector, -this.knockBackMag))
                     e.velocity.set(Vector.mult(collisionVector, 1))
                 }

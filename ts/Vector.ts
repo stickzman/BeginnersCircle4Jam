@@ -1,5 +1,5 @@
 class Vector {
-    constructor(public x: number, public y: number) { }
+    constructor(public x: number = 0, public y: number = 0) { }
 
     normalize(): Vector {
         this.div(this.mag)

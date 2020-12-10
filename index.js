@@ -54,9 +54,75 @@ class Sprite extends PIXI.Sprite {
         Camera.stage.addChild(this);
     }
 }
+class Vector {
+    constructor(x = 0, y = 0) {
+        this.x = x;
+        this.y = y;
+    }
+    normalize() {
+        this.div(this.mag);
+        return this;
+    }
+    mult(n) {
+        this.x *= n;
+        this.y *= n;
+        return this;
+    }
+    div(n) {
+        this.x /= n;
+        this.y /= n;
+        return this;
+    }
+    get mag() {
+        return Math.sqrt(Math.pow(this.x, 2) + Math.pow(this.y, 2));
+    }
+    set mag(m) {
+        this.normalize().mult(m);
+    }
+    set(v, y) {
+        if (v instanceof Vector) {
+            this.x = v.x;
+            this.y = v.y;
+        }
+        else if (y === undefined) {
+            this.x = this.y = v;
+        }
+        else {
+            this.x = v;
+            this.y = y;
+        }
+    }
+    copy() {
+        return new Vector(this.x, this.y);
+    }
+    static fromPoints(x1, y1, x2, y2) {
+        return new Vector(x2 - x1, y2 - y1);
+    }
+    static fromVectors(v1, v2) {
+        return Vector.fromPoints(v1.x, v1.y, v2.x, v2.y);
+    }
+    static fromAngle(a) {
+        return new Vector(Math.cos(a), Math.sin(a));
+    }
+    static mult(v, n) {
+        return v.copy().mult(n);
+    }
+    static div(v, n) {
+        return v.copy().div(n);
+    }
+    static add(v1, v2) {
+        return new Vector(v1.x + v2.x, v1.y + v2.y);
+    }
+    static dist(v1, v2) {
+        return Math.sqrt(Math.pow((v2.x - v1.x), 2) + Math.pow((v2.y - v1.y), 2));
+    }
+}
 PIXI.settings.SORTABLE_CHILDREN = true;
 class Camera {
     constructor(selector = "body", x = 0, y = 0) {
+        this.maxShakeOffset = 20;
+        this.shakeDecrease = 0.02;
+        this.pos = new Vector(0, 0);
         this.renderer = PIXI.autoDetectRenderer();
         this.renderer.backgroundColor = 0x010203;
         document.querySelector(selector).appendChild(this.renderer.view);
@@ -72,16 +138,18 @@ class Camera {
         this.y = y;
     }
     set x(x) {
+        this.pos.x = x;
         Camera.stage.x = this.width / 2 - x;
     }
     get x() {
-        return this.width / 2 - Camera.stage.x;
+        return this.pos.x;
     }
     set y(y) {
+        this.pos.y = y;
         Camera.stage.y = this.height / 2 - y;
     }
     get y() {
-        return this.height / 2 - Camera.stage.y;
+        return this.pos.y;
     }
     set angle(a) {
         this.rotationLayer.angle = a;
@@ -94,9 +162,17 @@ class Camera {
         this.y = container.y;
     }
     render() {
+        if (Camera.shake > 0) {
+            const offsetX = this.maxShakeOffset * Math.pow(Camera.shake, 2) * (Math.random() * 2 - 1);
+            const offsetY = this.maxShakeOffset * Math.pow(Camera.shake, 2) * (Math.random() * 2 - 1);
+            Camera.stage.x = this.x + this.width / 2 - offsetX;
+            Camera.stage.y = this.y + this.height / 2 - offsetY;
+            Camera.shake -= this.shakeDecrease;
+        }
         this.renderer.render(this.rotationLayer);
     }
 }
+Camera.shake = 0;
 class Collider {
     constructor(gameObj, radius, x = 0, y = 0) {
         this.gameObj = gameObj;
@@ -196,7 +272,7 @@ class Enemy extends GameObject {
         this.friction = .9;
         this.pos = new Vector(1, 1);
         this.aimSpeed = 0.05;
-        this.chargeSpeed = 5;
+        this.chargeSpeed = 10;
         this.maxChargeSpeed = 400;
         this.dashMag = 250;
         this.dashSpeed = 10;
@@ -231,6 +307,8 @@ class Enemy extends GameObject {
                     e.state === EnemyState.DASH_KNOCK_BACK) {
                     this.state = EnemyState.DASH_KNOCK_BACK;
                     e.state = EnemyState.DASH_KNOCK_BACK;
+                    Camera.shake = 0.3;
+                    globalThis.frameHalt = 5;
                 }
                 this.state = EnemyState.KNOCK_BACK;
                 e.state = EnemyState.KNOCK_BACK;
@@ -367,7 +445,6 @@ class Enemy extends GameObject {
         if (this.state == EnemyState.DASH || this.state === EnemyState.INACTIVE)
             return;
         if (this.state !== EnemyState.DEAD) {
-            this.sprite.height = 40;
             this.sprite.width = 40 - (10 * (this.velocity.mag / this.dashSpeed));
         }
         this.x += this.velocity.x;
@@ -396,7 +473,7 @@ class Graphic extends PIXI.Graphics {
         Camera.stage.addChild(this);
     }
 }
-const cam = new Camera();
+let cam = new Camera();
 const stage = Camera.stage;
 var player;
 var enemy;
@@ -421,6 +498,7 @@ function tick() {
     if (frameHalt > 0) {
         --frameHalt;
         frameID = window.requestAnimationFrame(tick);
+        cam.render();
         return;
     }
     Collider.update();
@@ -545,14 +623,15 @@ class Player extends GameObject {
                 const faster = this.velocity.mag >= e.velocity.mag;
                 if (faster) {
                     if (this.state === PlayerState.DASH) {
-                        e.sprite.height = this.sprite.width;
-                        e.sprite.width = 40;
                         e.sprite.angle = this.sprite.angle;
+                        Camera.shake = .5 * Math.sqrt(this.velocity.mag / this.maxDashMag);
+                        globalThis.frameHalt = 5;
                     }
                     e.velocity.set(Vector.mult(collisionVector, this.velocity.mag));
                     this.velocity.set(Vector.mult(collisionVector, -1));
                 }
                 else {
+                    Camera.shake = 0.35;
                     this.velocity.set(Vector.mult(collisionVector, -this.knockBackMag));
                     e.velocity.set(Vector.mult(collisionVector, 1));
                 }
@@ -687,69 +766,6 @@ class Player extends GameObject {
         this.y = 0;
         this.velocity.set(0, 0);
         this.radius = this.initialRadius;
-    }
-}
-class Vector {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-    }
-    normalize() {
-        this.div(this.mag);
-        return this;
-    }
-    mult(n) {
-        this.x *= n;
-        this.y *= n;
-        return this;
-    }
-    div(n) {
-        this.x /= n;
-        this.y /= n;
-        return this;
-    }
-    get mag() {
-        return Math.sqrt(Math.pow(this.x, 2) + Math.pow(this.y, 2));
-    }
-    set mag(m) {
-        this.normalize().mult(m);
-    }
-    set(v, y) {
-        if (v instanceof Vector) {
-            this.x = v.x;
-            this.y = v.y;
-        }
-        else if (y === undefined) {
-            this.x = this.y = v;
-        }
-        else {
-            this.x = v;
-            this.y = y;
-        }
-    }
-    copy() {
-        return new Vector(this.x, this.y);
-    }
-    static fromPoints(x1, y1, x2, y2) {
-        return new Vector(x2 - x1, y2 - y1);
-    }
-    static fromVectors(v1, v2) {
-        return Vector.fromPoints(v1.x, v1.y, v2.x, v2.y);
-    }
-    static fromAngle(a) {
-        return new Vector(Math.cos(a), Math.sin(a));
-    }
-    static mult(v, n) {
-        return v.copy().mult(n);
-    }
-    static div(v, n) {
-        return v.copy().div(n);
-    }
-    static add(v1, v2) {
-        return new Vector(v1.x + v2.x, v1.y + v2.y);
-    }
-    static dist(v1, v2) {
-        return Math.sqrt(Math.pow((v2.x - v1.x), 2) + Math.pow((v2.y - v1.y), 2));
     }
 }
 //# sourceMappingURL=index.js.map

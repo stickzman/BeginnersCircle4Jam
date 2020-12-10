@@ -1,7 +1,7 @@
 /// <reference path="Camera.ts" />
 /// <reference path="Collider.ts" />
 
-const cam = new Camera()
+let cam = new Camera()
 const stage = Camera.stage
 var player: Player
 var enemy: Enemy
@@ -22,6 +22,8 @@ function init(loader, resources) {
     })
 
     Enemy.spawn(5)
+    // new Enemy(100, 0)
+    // new Enemy(200, 0)
 
     window.requestAnimationFrame(tick)
 }
@@ -32,6 +34,7 @@ function tick() {
     if (frameHalt > 0) {
         --frameHalt
         frameID = window.requestAnimationFrame(tick)
+        cam.render()
         return
     }
     Collider.update()
