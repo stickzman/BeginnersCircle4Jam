@@ -339,7 +339,7 @@ class Enemy extends GameObject {
         this.radius = radius;
         this.collider.on("exit", (col) => {
             if (col.gameObj.tag === "platform") {
-                if (Math.random() < 0.6 && (this.state === EnemyState.DASH ||
+                if (Math.random() < 0.8 && (this.state === EnemyState.DASH ||
                     this.state === EnemyState.RECOVERY)) {
                     this.velocity.normalize().mult(-5);
                     this.state = EnemyState.KNOCK_BACK;
@@ -549,6 +549,7 @@ var Howl;
 let cam = new Camera();
 var player;
 let platform;
+let level = 0;
 PIXI.Loader.shared
     .add("sheet", "./spritesheets/sheet.json")
     .load(init);
@@ -557,7 +558,6 @@ function init(loader, resources) {
     globalThis.spritesheet = sheet;
     platform = new Platform();
     player = new Player();
-    Enemy.spawn(5);
     window.requestAnimationFrame(tick);
 }
 function reset() {
@@ -582,8 +582,11 @@ function tick() {
         }
         e.update();
     }
-    if (Enemy.enemies.length === 0)
+    if (Enemy.enemies.length === 0) {
         console.log("YOU WIN!");
+        reset();
+        Enemy.spawn(++level);
+    }
     cam.render();
     frameID = window.requestAnimationFrame(tick);
 }

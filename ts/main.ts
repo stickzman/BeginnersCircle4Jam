@@ -6,6 +6,7 @@ var Howl: any
 let cam = new Camera()
 var player: Player
 let platform: Platform
+let level = 0
 
 PIXI.Loader.shared
     .add("sheet", "./spritesheets/sheet.json")
@@ -18,7 +19,7 @@ function init(loader, resources) {
     platform = new Platform()
     player = new Player()
 
-    Enemy.spawn(5)
+    // Enemy.spawn(5)
     // new Enemy(50, 0)
     // new Enemy(100, 0)
     // new Enemy(150, 0)
@@ -51,7 +52,11 @@ function tick() {
         }
         e.update()
     }
-    if (Enemy.enemies.length === 0) console.log("YOU WIN!")
+    if (Enemy.enemies.length === 0) {
+        console.log("YOU WIN!")
+        reset()
+        Enemy.spawn(++level)
+    }
 
     cam.render()
 

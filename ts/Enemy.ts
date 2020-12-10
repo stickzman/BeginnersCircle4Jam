@@ -127,7 +127,7 @@ class Enemy extends GameObject {
         this.collider.on("exit", (col: Collider) => {
             if (col.gameObj.tag === "platform") {
                 // 50% chance they 'catch' themselves before going over edge
-                if (Math.random() < 0.6 && (this.state === EnemyState.DASH ||
+                if (Math.random() < 0.8 && (this.state === EnemyState.DASH ||
                                           this.state === EnemyState.RECOVERY)
                 ) {
                     this.velocity.normalize().mult(-5)
