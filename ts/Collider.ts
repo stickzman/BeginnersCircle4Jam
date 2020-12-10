@@ -37,7 +37,7 @@ class Collider {
         if (this.visual) this.visual.destroy()
 
         Collider.allColliders = Collider.allColliders.filter(c => {
-            return c !== this 
+            return c !== this
         })
     }
 

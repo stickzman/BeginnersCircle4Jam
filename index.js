@@ -483,6 +483,9 @@ class Enemy extends GameObject {
         this.sprite.destroy();
         this.indicator.destroy();
         this.collider.destroy();
+        Enemy.enemies = Enemy.enemies.filter(e => {
+            return e !== this;
+        });
     }
     static spawn(numEnemies, radius = 250, minRadius = 75) {
         for (let i = 0; i < numEnemies; i++) {
@@ -554,11 +557,7 @@ function init(loader, resources) {
     globalThis.spritesheet = sheet;
     platform = new Platform();
     player = new Player();
-    new Enemy(50, 0);
-    new Enemy(100, 0);
-    new Enemy(150, 0);
-    new Enemy(200, 0);
-    new Enemy(250, 0);
+    Enemy.spawn(5);
     window.requestAnimationFrame(tick);
 }
 function reset() {
@@ -578,7 +577,7 @@ function tick() {
     player.update();
     for (const [i, e] of Enemy.enemies.entries()) {
         if (e.state === EnemyState.INACTIVE) {
-            Enemy.enemies.splice(i, 1);
+            e.destroy();
             continue;
         }
         e.update();

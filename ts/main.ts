@@ -18,12 +18,12 @@ function init(loader, resources) {
     platform = new Platform()
     player = new Player()
 
-    // Enemy.spawn(5)
-    new Enemy(50, 0)
-    new Enemy(100, 0)
-    new Enemy(150, 0)
-    new Enemy(200, 0)
-    new Enemy(250, 0)
+    Enemy.spawn(5)
+    // new Enemy(50, 0)
+    // new Enemy(100, 0)
+    // new Enemy(150, 0)
+    // new Enemy(200, 0)
+    // new Enemy(250, 0)
 
     window.requestAnimationFrame(tick)
 }
@@ -46,7 +46,7 @@ function tick() {
     player.update()
     for (const [i, e] of Enemy.enemies.entries()) {
         if (e.state === EnemyState.INACTIVE) {
-            Enemy.enemies.splice(i, 1)
+            e.destroy()
             continue
         }
         e.update()

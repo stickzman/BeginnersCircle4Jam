@@ -288,6 +288,10 @@ class Enemy extends GameObject {
         this.sprite.destroy()
         this.indicator.destroy()
         this.collider.destroy()
+
+        Enemy.enemies = Enemy.enemies.filter(e => {
+            return e !== this
+        })
     }
 
     static spawn(numEnemies: number, radius: number = 250, minRadius: number = 75) {
