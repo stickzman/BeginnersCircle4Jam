@@ -91,6 +91,7 @@ class Vector {
             this.x = v;
             this.y = y;
         }
+        return this;
     }
     copy() {
         return new Vector(this.x, this.y);
@@ -273,8 +274,7 @@ class Enemy extends GameObject {
         this.pos = new Vector(1, 1);
         this.aimSpeed = 0.05;
         this.chargeSpeed = 10;
-        this.maxChargeSpeed = 400;
-        this.dashMag = 250;
+        this.dashMag = 400;
         this.dashSpeed = 10;
         this.restTime = 0;
         this.restStart = 0;
@@ -413,12 +413,12 @@ class Enemy extends GameObject {
                 else {
                     this.rotation -= this.aimSpeed;
                 }
-                if (this.indicator.height < this.maxChargeSpeed) {
+                if (this.indicator.height < this.dashMag + 50) {
                     this.indicator.height += this.chargeSpeed;
                 }
                 else if (angleAligned) {
                     const v = Vector.fromVectors(this.pos, this.target);
-                    this.velocity.set(v.normalize().mult(this.dashSpeed));
+                    this.velocity.set(v.normalize()).mult(this.dashSpeed);
                     this.dashEnd = Vector.add(this.pos, v.mult(this.dashMag));
                     this.state = EnemyState.DASH;
                 }
@@ -445,8 +445,7 @@ class Enemy extends GameObject {
                 this.sprite.width = 30;
                 this.x += this.velocity.x;
                 this.y += this.velocity.y;
-                if (Vector.dist(this.pos, this.dashEnd) < 2) {
-                    this.velocity.mult(this.dashSpeed);
+                if (Vector.dist(this.pos, this.dashEnd) < this.dashSpeed * 2) {
                     this.state = EnemyState.RECOVERY;
                 }
                 break;
@@ -537,7 +536,7 @@ function init(loader, resources) {
         if (col.gameObj.tag === "platform")
             console.log("YOU DIED");
     });
-    Enemy.spawn(1);
+    Enemy.spawn(5);
     window.requestAnimationFrame(tick);
 }
 var frameID;
@@ -645,7 +644,7 @@ class Player extends GameObject {
         this.velocity = new Vector(0, 0);
         this.friction = .9;
         this.knockBackMag = 20;
-        this.maxDashMag = 35;
+        this.maxDashMag = 40;
         this.maxAimTime = 500;
         this.indicator = new Sprite(globalThis.spritesheet.textures["arrow.png"]);
         this.sprite = new Sprite(img);

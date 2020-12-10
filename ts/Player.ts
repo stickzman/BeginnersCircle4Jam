@@ -18,7 +18,7 @@ class Player extends GameObject {
     friction: number = .9
     knockBackMag: number = 20
 
-    maxDashMag: number = 35
+    maxDashMag: number = 40
     startAimTime: number
     maxAimTime: number = 500
 

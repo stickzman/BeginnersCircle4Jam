@@ -62,8 +62,7 @@ class Enemy extends GameObject {
 
     aimSpeed: number = 0.05
     chargeSpeed: number = 10
-    maxChargeSpeed: number = 400
-    dashMag: number = 250
+    dashMag: number = 400
     dashSpeed: number = 10
     dashEnd: Vector
 
@@ -223,12 +222,12 @@ class Enemy extends GameObject {
                     this.rotation -= this.aimSpeed
                 }
                 // Pull back bow
-                if (this.indicator.height < this.maxChargeSpeed) {
+                if (this.indicator.height < this.dashMag + 50) {
                     this.indicator.height += this.chargeSpeed
                 } else if (angleAligned) {
                     // Enter dash
                     const v = Vector.fromVectors(this.pos, this.target)
-                    this.velocity.set(v.normalize().mult(this.dashSpeed))
+                    this.velocity.set(v.normalize()).mult(this.dashSpeed)
                     this.dashEnd = Vector.add(this.pos, v.mult(this.dashMag))
 
                     this.state = EnemyState.DASH
@@ -256,8 +255,7 @@ class Enemy extends GameObject {
                 this.sprite.width = 30
                 this.x += this.velocity.x
                 this.y += this.velocity.y
-                if (Vector.dist(this.pos, this.dashEnd) < 2) {
-                    this.velocity.mult(this.dashSpeed)
+                if (Vector.dist(this.pos, this.dashEnd) < this.dashSpeed*2) {
                     this.state = EnemyState.RECOVERY
                 }
                 break

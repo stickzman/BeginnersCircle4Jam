@@ -23,7 +23,7 @@ function init(loader, resources) {
         if (col.gameObj.tag === "platform") console.log("YOU DIED")
     })
 
-    Enemy.spawn(1)
+    Enemy.spawn(5)
     // new Enemy(50, 0)
     // new Enemy(100, 0)
     // new Enemy(150, 0)

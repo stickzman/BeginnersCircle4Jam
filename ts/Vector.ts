@@ -37,6 +37,7 @@ class Vector {
             this.x = v
             this.y = y
         }
+        return this
     }
 
     copy(): Vector {
