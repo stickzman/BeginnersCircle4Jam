@@ -144,7 +144,7 @@ class Player extends GameObject {
             case PlayerState.DEAD: {
                 // Shrink player (like they're falling)
                 this.radius -= 0.5
-                this.sprite.angle += 3
+                this.sprite.angle += 6
                 if (this.radius <= 0) {
                     this.respawn()
                 }

@@ -537,7 +537,7 @@ function init(loader, resources) {
         if (col.gameObj.tag === "platform")
             console.log("YOU DIED");
     });
-    Enemy.spawn(10);
+    Enemy.spawn(1);
     window.requestAnimationFrame(tick);
 }
 var frameID;
@@ -738,7 +738,7 @@ class Player extends GameObject {
         switch (this.state) {
             case PlayerState.DEAD: {
                 this.radius -= 0.5;
-                this.sprite.angle += 3;
+                this.sprite.angle += 6;
                 if (this.radius <= 0) {
                     this.respawn();
                 }
