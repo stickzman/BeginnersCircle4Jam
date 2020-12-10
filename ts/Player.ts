@@ -20,10 +20,25 @@ class Player extends GameObject {
 
     maxDashMag: number = 35
     startAimTime: number
-    maxAimTime: number = 900
+    maxAimTime: number = 500
 
     private _r: number
     private initialRadius: number
+    static hitSound = new Howl({
+        src: ['./assets/audio/hit.wav']
+    })
+    static fallSound = new Howl({
+        src: ['./assets/audio/fall.wav'],
+        volume: 0.5
+    })
+    static attackSound = new Howl({
+        src: ['./assets/audio/attack.wav'],
+        volume: 0.5
+    })
+    static smallHitSound = new Howl({
+        src: ['./assets/audio/smallhit.wav'],
+        volume: 0.25
+    })
 
     constructor(img: PIXI.Texture, radius: number = 15) {
         super("player")
@@ -38,6 +53,7 @@ class Player extends GameObject {
             if (col.gameObj.tag === "platform") {
                 this.state = PlayerState.DEAD
                 this.initialRadius = this.radius
+                Player.fallSound.play()
             }
         })
         this.collider.on("enter", (col: Collider) => {
@@ -45,28 +61,36 @@ class Player extends GameObject {
             if (col.gameObj.tag === "enemy") {
                 const e = <Enemy>col.gameObj
                 if (e.state === EnemyState.DEAD || e.state === EnemyState.INACTIVE) return
+                e.state = EnemyState.KNOCK_BACK
                 // Circle collision resolution/bouncing
                 const collisionVector = Vector.fromPoints(this.collider.x, this.collider.y, col.x, col.y).normalize()
-                const faster = this.velocity.mag >= e.velocity.mag
+                const faster = this.velocity.mag > e.velocity.mag
                 if (faster) {
                     if (this.state === PlayerState.DASH) {
+                        Enemy.combo = 0
                         // Squash enemy sprite, angle towards player
                         e.sprite.angle = this.sprite.angle
                         Camera.shake = .5 * (this.velocity.mag/this.maxDashMag + 0.1)
                         globalThis.frameHalt = 5
                         // Enemy rebound velocity
                         e.velocity.set(Vector.mult(collisionVector, this.velocity.mag))
+                        Player.attackSound.play()
+                        e.state = EnemyState.DASH_KNOCK_BACK
+                    } else {
+                        Player.smallHitSound.play()
                     }
                     // Player rebound velocity
                     this.velocity.set(Vector.mult(collisionVector, -1))
+
                 } else {
                     Camera.shake = 0.35
+                    globalThis.frameHalt = 5
                     this.velocity.set(Vector.mult(collisionVector, -this.knockBackMag))
                     e.velocity.set(Vector.mult(collisionVector, 1))
+                    Player.hitSound.play()
                 }
 
                 this.state = PlayerState.KNOCK_BACK
-                e.state = EnemyState.DASH_KNOCK_BACK
             }
         })
         this.radius = radius

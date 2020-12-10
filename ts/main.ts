@@ -1,6 +1,8 @@
 /// <reference path="Camera.ts" />
 /// <reference path="Collider.ts" />
 
+var Howl: any
+
 let cam = new Camera()
 const stage = Camera.stage
 var player: Player
@@ -21,9 +23,13 @@ function init(loader, resources) {
         if (col.gameObj.tag === "platform") console.log("YOU DIED")
     })
 
-    Enemy.spawn(5)
+    Enemy.spawn(10)
+    // new Enemy(50, 0)
     // new Enemy(100, 0)
+    // new Enemy(150, 0)
     // new Enemy(200, 0)
+    // new Enemy(250, 0)
+    // new Enemy(300, 0)
 
     window.requestAnimationFrame(tick)
 }

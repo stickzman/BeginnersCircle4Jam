@@ -12,6 +12,43 @@ enum EnemyState {
 
 class Enemy extends GameObject {
     static enemies: Enemy[] = []
+    static combo = 0
+    static comboSounds = [
+        new Howl({
+            src: ['./assets/audio/combo1.wav'],
+            volume: 0.3
+        }),
+        new Howl({
+            src: ['./assets/audio/combo2.wav'],
+            volume: 0.3
+        }),
+        new Howl({
+            src: ['./assets/audio/combo3.wav'],
+            volume: 0.3
+        }),
+        new Howl({
+            src: ['./assets/audio/combo4.wav'],
+            volume: 0.3
+        }),
+        new Howl({
+            src: ['./assets/audio/combo5.wav'],
+            volume: 0.3
+        }),
+    ]
+    static hitSound = new Howl({
+        src: ['./assets/audio/hit.wav'],
+        volume: 0.25
+    })
+    static fallSound = new Howl({
+        src: ['./assets/audio/enemyfall.wav'],
+        volume: 0.5
+    })
+    static deathSound = new Howl({
+        src: ['./assets/audio/score.wav'],
+        volume: 0.5
+    })
+
+
     sprite: PIXI.Sprite
     indicator: PIXI.Graphics
 
@@ -72,7 +109,14 @@ class Enemy extends GameObject {
                     e.state = EnemyState.DASH_KNOCK_BACK
                     Camera.shake = 0.25
                     globalThis.frameHalt = 5
+                    Player.attackSound.play()
+                    Enemy.combo++
+                    const i = (Enemy.combo >= Enemy.comboSounds.length)
+                                ? Enemy.comboSounds.length - 1
+                                : Enemy.combo
+                    Enemy.comboSounds[i].play()
                 } else {
+                    Enemy.hitSound.play()
                     this.state = EnemyState.KNOCK_BACK
                     e.state = EnemyState.KNOCK_BACK
                 }
@@ -92,6 +136,7 @@ class Enemy extends GameObject {
                 } else {
                     this.radius = 20
                     this.state = EnemyState.DEAD
+                    Enemy.fallSound.play()
                 }
             }
         })
@@ -152,6 +197,7 @@ class Enemy extends GameObject {
                 this.sprite.angle += 3
                 if (this.radius <= 0) {
                     this.state = EnemyState.INACTIVE
+                    Enemy.deathSound.play()
                 }
                 break
             }
@@ -182,7 +228,7 @@ class Enemy extends GameObject {
                 } else if (angleAligned) {
                     // Enter dash
                     const v = Vector.fromVectors(this.pos, this.target)
-                    this.velocity.set(v.normalize())
+                    this.velocity.set(v.normalize().mult(this.dashSpeed))
                     this.dashEnd = Vector.add(this.pos, v.mult(this.dashMag))
 
                     this.state = EnemyState.DASH
@@ -208,8 +254,8 @@ class Enemy extends GameObject {
             }
             case EnemyState.DASH: {
                 this.sprite.width = 30
-                this.x += this.velocity.x * this.dashSpeed
-                this.y += this.velocity.y * this.dashSpeed
+                this.x += this.velocity.x
+                this.y += this.velocity.y
                 if (Vector.dist(this.pos, this.dashEnd) < 2) {
                     this.velocity.mult(this.dashSpeed)
                     this.state = EnemyState.RECOVERY

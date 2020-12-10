@@ -309,8 +309,15 @@ class Enemy extends GameObject {
                     e.state = EnemyState.DASH_KNOCK_BACK;
                     Camera.shake = 0.25;
                     globalThis.frameHalt = 5;
+                    Player.attackSound.play();
+                    Enemy.combo++;
+                    const i = (Enemy.combo >= Enemy.comboSounds.length)
+                        ? Enemy.comboSounds.length - 1
+                        : Enemy.combo;
+                    Enemy.comboSounds[i].play();
                 }
                 else {
+                    Enemy.hitSound.play();
                     this.state = EnemyState.KNOCK_BACK;
                     e.state = EnemyState.KNOCK_BACK;
                 }
@@ -328,6 +335,7 @@ class Enemy extends GameObject {
                 else {
                     this.radius = 20;
                     this.state = EnemyState.DEAD;
+                    Enemy.fallSound.play();
                 }
             }
         });
@@ -379,6 +387,7 @@ class Enemy extends GameObject {
                 this.sprite.angle += 3;
                 if (this.radius <= 0) {
                     this.state = EnemyState.INACTIVE;
+                    Enemy.deathSound.play();
                 }
                 break;
             }
@@ -409,7 +418,7 @@ class Enemy extends GameObject {
                 }
                 else if (angleAligned) {
                     const v = Vector.fromVectors(this.pos, this.target);
-                    this.velocity.set(v.normalize());
+                    this.velocity.set(v.normalize().mult(this.dashSpeed));
                     this.dashEnd = Vector.add(this.pos, v.mult(this.dashMag));
                     this.state = EnemyState.DASH;
                 }
@@ -434,8 +443,8 @@ class Enemy extends GameObject {
             }
             case EnemyState.DASH: {
                 this.sprite.width = 30;
-                this.x += this.velocity.x * this.dashSpeed;
-                this.y += this.velocity.y * this.dashSpeed;
+                this.x += this.velocity.x;
+                this.y += this.velocity.y;
                 if (Vector.dist(this.pos, this.dashEnd) < 2) {
                     this.velocity.mult(this.dashSpeed);
                     this.state = EnemyState.RECOVERY;
@@ -470,12 +479,48 @@ class Enemy extends GameObject {
     }
 }
 Enemy.enemies = [];
+Enemy.combo = 0;
+Enemy.comboSounds = [
+    new Howl({
+        src: ['./assets/audio/combo1.wav'],
+        volume: 0.3
+    }),
+    new Howl({
+        src: ['./assets/audio/combo2.wav'],
+        volume: 0.3
+    }),
+    new Howl({
+        src: ['./assets/audio/combo3.wav'],
+        volume: 0.3
+    }),
+    new Howl({
+        src: ['./assets/audio/combo4.wav'],
+        volume: 0.3
+    }),
+    new Howl({
+        src: ['./assets/audio/combo5.wav'],
+        volume: 0.3
+    }),
+];
+Enemy.hitSound = new Howl({
+    src: ['./assets/audio/hit.wav'],
+    volume: 0.25
+});
+Enemy.fallSound = new Howl({
+    src: ['./assets/audio/enemyfall.wav'],
+    volume: 0.5
+});
+Enemy.deathSound = new Howl({
+    src: ['./assets/audio/score.wav'],
+    volume: 0.5
+});
 class Graphic extends PIXI.Graphics {
     constructor() {
         super();
         Camera.stage.addChild(this);
     }
 }
+var Howl;
 let cam = new Camera();
 const stage = Camera.stage;
 var player;
@@ -492,7 +537,7 @@ function init(loader, resources) {
         if (col.gameObj.tag === "platform")
             console.log("YOU DIED");
     });
-    Enemy.spawn(5);
+    Enemy.spawn(10);
     window.requestAnimationFrame(tick);
 }
 var frameID;
@@ -601,7 +646,7 @@ class Player extends GameObject {
         this.friction = .9;
         this.knockBackMag = 20;
         this.maxDashMag = 35;
-        this.maxAimTime = 900;
+        this.maxAimTime = 500;
         this.indicator = new Sprite(globalThis.spritesheet.textures["arrow.png"]);
         this.sprite = new Sprite(img);
         this.sprite.zIndex = 1;
@@ -613,6 +658,7 @@ class Player extends GameObject {
             if (col.gameObj.tag === "platform") {
                 this.state = PlayerState.DEAD;
                 this.initialRadius = this.radius;
+                Player.fallSound.play();
             }
         });
         this.collider.on("enter", (col) => {
@@ -622,24 +668,32 @@ class Player extends GameObject {
                 const e = col.gameObj;
                 if (e.state === EnemyState.DEAD || e.state === EnemyState.INACTIVE)
                     return;
+                e.state = EnemyState.KNOCK_BACK;
                 const collisionVector = Vector.fromPoints(this.collider.x, this.collider.y, col.x, col.y).normalize();
-                const faster = this.velocity.mag >= e.velocity.mag;
+                const faster = this.velocity.mag > e.velocity.mag;
                 if (faster) {
                     if (this.state === PlayerState.DASH) {
+                        Enemy.combo = 0;
                         e.sprite.angle = this.sprite.angle;
                         Camera.shake = .5 * (this.velocity.mag / this.maxDashMag + 0.1);
                         globalThis.frameHalt = 5;
                         e.velocity.set(Vector.mult(collisionVector, this.velocity.mag));
+                        Player.attackSound.play();
+                        e.state = EnemyState.DASH_KNOCK_BACK;
+                    }
+                    else {
+                        Player.smallHitSound.play();
                     }
                     this.velocity.set(Vector.mult(collisionVector, -1));
                 }
                 else {
                     Camera.shake = 0.35;
+                    globalThis.frameHalt = 5;
                     this.velocity.set(Vector.mult(collisionVector, -this.knockBackMag));
                     e.velocity.set(Vector.mult(collisionVector, 1));
+                    Player.hitSound.play();
                 }
                 this.state = PlayerState.KNOCK_BACK;
-                e.state = EnemyState.DASH_KNOCK_BACK;
             }
         });
         this.radius = radius;
@@ -771,4 +825,19 @@ class Player extends GameObject {
         this.radius = this.initialRadius;
     }
 }
+Player.hitSound = new Howl({
+    src: ['./assets/audio/hit.wav']
+});
+Player.fallSound = new Howl({
+    src: ['./assets/audio/fall.wav'],
+    volume: 0.5
+});
+Player.attackSound = new Howl({
+    src: ['./assets/audio/attack.wav'],
+    volume: 0.5
+});
+Player.smallHitSound = new Howl({
+    src: ['./assets/audio/smallhit.wav'],
+    volume: 0.25
+});
 //# sourceMappingURL=index.js.map
