@@ -22,7 +22,7 @@ class Player extends GameObject {
     startAimTime: number
     maxAimTime: number = 500
 
-    lives: number = 10
+    lives: number = 3
 
     static hitSound = new Howl({
         src: ['./assets/audio/hit.wav']
@@ -151,11 +151,7 @@ class Player extends GameObject {
                 this.radius -= 0.5
                 this.sprite.angle += 6
                 if (this.radius <= 0) {
-                    globalThis.score -= 50
-                    const screenPos = this.sprite.getGlobalPosition()
-                    flashScore(-50, screenPos.x, screenPos.y)
-                    this.lives--
-                    this.respawn()
+                    if (--this.lives > 0) this.respawn()
                 }
                 break
             }

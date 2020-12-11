@@ -15,6 +15,7 @@ window.addEventListener("keydown", e => {
         case "a": globalThis.LEFT = true; break;
         case "s": globalThis.DOWN = true; break;
         case "d": globalThis.RIGHT = true; break;
+        case " ": globalThis.SPACE = true; break;
     }
 })
 window.addEventListener("keyup", e => {
@@ -23,6 +24,7 @@ window.addEventListener("keyup", e => {
         case "a": globalThis.LEFT = false; break;
         case "s": globalThis.DOWN = false; break;
         case "d": globalThis.RIGHT = false; break;
+        case " ": globalThis.SPACE = false; break;
     }
 })
 window.addEventListener("mousemove", e => {

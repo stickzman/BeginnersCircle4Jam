@@ -4,9 +4,13 @@
 var Howl: any
 var WebFont: any
 
-let levelUpSound = new Howl({
+const levelUpSound = new Howl({
     src: ['./assets/audio/levelup.wav'],
     volume: 1
+})
+const gameOverSound = new Howl({
+    src: ['./assets/audio/gameover.wav'],
+    volume: 0.3
 })
 
 let cam = new Camera()
@@ -18,6 +22,7 @@ let scoreBoard: PIXI.Text
 let highScore: string | number = localStorage.getItem("highScore")
 highScore = (highScore) ? parseInt(highScore) : 0
 let highScoreBoard: PIXI.Text
+let gameOverScreen: PIXI.Text
 let levelText: PIXI.Text
 let livesCounter: PIXI.Text
 let floatScore: PIXI.Text
@@ -75,6 +80,15 @@ WebFont.load({
             "alpha": 0,
             "fontSize": "20px"
         })
+        gameOverScreen = cam.addText("Game Over!\n\n\n\nPress\n\nSpacebar\n\nto play again", {
+            "fontFamily": "Press Start 2P",
+            "fill": 0x000000,
+            "fontSize": "32px",
+            "align": "center"
+        },)
+        gameOverScreen.x = cam.width/2 - gameOverScreen.width/2
+        gameOverScreen.y = cam.height/2 - gameOverScreen.height/2
+        gameOverScreen.alpha = 0
     }
 })
 
@@ -95,13 +109,9 @@ function init(loader, resources) {
     window.requestAnimationFrame(tick)
 }
 
-function reset() {
-    Enemy.clear()
-    player.respawn()
-}
-
 var frameID: number
 var frameHalt = 0
+let gameOver = false
 function tick() {
     if (frameHalt > 0) {
         --frameHalt
@@ -109,6 +119,21 @@ function tick() {
         cam.render()
         return
     }
+
+    score = (score < 0) ? 0 : score
+    scoreBoard.text = "Score:\n\n" + score
+    livesCounter.text = "Lives:\n\n" + player.lives
+    if (floatScore.alpha > 0) {
+        floatScore.alpha -= 0.01
+    }
+
+    if (gameOver) {
+        if (globalThis.SPACE) reset()
+        cam.render()
+        frameID = window.requestAnimationFrame(tick)
+        return
+    }
+
     Collider.update()
     player.update()
     for (const e of Enemy.enemies) {
@@ -137,16 +162,31 @@ function tick() {
         }, 2000)
     }
 
-    score = (score < 0) ? 0 : score
-    scoreBoard.text = "Score:\n\n" + score
-    livesCounter.text = "Lives:\n\n" + player.lives
-    if (floatScore.alpha > 0) {
-        floatScore.alpha -= 0.01
-    }
-
     cam.render()
 
+    if (player.lives <= 0) {
+        Enemy.clear()
+        gameOver = true
+        gameOverScreen.alpha = 1
+        gameOverSound.play()
+        if (score > highScore) {
+            localStorage.setItem("highScore", score.toString())
+            highScore = score
+            highScoreBoard.text = "High\nScore:\n\n" + highScore
+        }
+    }
+
     frameID = window.requestAnimationFrame(tick)
+}
+
+function reset() {
+    Enemy.clear()
+    player.lives = 3
+    player.respawn()
+    level = 0
+    gameOver = false
+    gameOverScreen.alpha = 0
+    levelUpSound.play()
 }
 
 window.addEventListener("beforeunload", function() {

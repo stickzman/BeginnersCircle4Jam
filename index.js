@@ -563,9 +563,13 @@ class Graphic extends PIXI.Graphics {
 }
 var Howl;
 var WebFont;
-let levelUpSound = new Howl({
+const levelUpSound = new Howl({
     src: ['./assets/audio/levelup.wav'],
     volume: 1
+});
+const gameOverSound = new Howl({
+    src: ['./assets/audio/gameover.wav'],
+    volume: 0.3
 });
 let cam = new Camera();
 var player;
@@ -576,6 +580,7 @@ let scoreBoard;
 let highScore = localStorage.getItem("highScore");
 highScore = (highScore) ? parseInt(highScore) : 0;
 let highScoreBoard;
+let gameOverScreen;
 let levelText;
 let livesCounter;
 let floatScore;
@@ -630,6 +635,15 @@ WebFont.load({
             "alpha": 0,
             "fontSize": "20px"
         });
+        gameOverScreen = cam.addText("Game Over!\n\n\n\nPress\n\nSpacebar\n\nto play again", {
+            "fontFamily": "Press Start 2P",
+            "fill": 0x000000,
+            "fontSize": "32px",
+            "align": "center"
+        });
+        gameOverScreen.x = cam.width / 2 - gameOverScreen.width / 2;
+        gameOverScreen.y = cam.height / 2 - gameOverScreen.height / 2;
+        gameOverScreen.alpha = 0;
     }
 });
 function init(loader, resources) {
@@ -639,17 +653,27 @@ function init(loader, resources) {
     player = new Player();
     window.requestAnimationFrame(tick);
 }
-function reset() {
-    Enemy.clear();
-    player.respawn();
-}
 var frameID;
 var frameHalt = 0;
+let gameOver = false;
 function tick() {
     if (frameHalt > 0) {
         --frameHalt;
         frameID = window.requestAnimationFrame(tick);
         cam.render();
+        return;
+    }
+    score = (score < 0) ? 0 : score;
+    scoreBoard.text = "Score:\n\n" + score;
+    livesCounter.text = "Lives:\n\n" + player.lives;
+    if (floatScore.alpha > 0) {
+        floatScore.alpha -= 0.01;
+    }
+    if (gameOver) {
+        if (globalThis.SPACE)
+            reset();
+        cam.render();
+        frameID = window.requestAnimationFrame(tick);
         return;
     }
     Collider.update();
@@ -679,14 +703,28 @@ function tick() {
             levelText.alpha = 1;
         }, 2000);
     }
-    score = (score < 0) ? 0 : score;
-    scoreBoard.text = "Score:\n\n" + score;
-    livesCounter.text = "Lives:\n\n" + player.lives;
-    if (floatScore.alpha > 0) {
-        floatScore.alpha -= 0.01;
-    }
     cam.render();
+    if (player.lives <= 0) {
+        Enemy.clear();
+        gameOver = true;
+        gameOverScreen.alpha = 1;
+        gameOverSound.play();
+        if (score > highScore) {
+            localStorage.setItem("highScore", score.toString());
+            highScore = score;
+            highScoreBoard.text = "High\nScore:\n\n" + highScore;
+        }
+    }
     frameID = window.requestAnimationFrame(tick);
+}
+function reset() {
+    Enemy.clear();
+    player.lives = 3;
+    player.respawn();
+    level = 0;
+    gameOver = false;
+    gameOverScreen.alpha = 0;
+    levelUpSound.play();
 }
 window.addEventListener("beforeunload", function () {
     if (score > highScore)
@@ -709,6 +747,9 @@ window.addEventListener("keydown", e => {
         case "d":
             globalThis.RIGHT = true;
             break;
+        case " ":
+            globalThis.SPACE = true;
+            break;
     }
 });
 window.addEventListener("keyup", e => {
@@ -724,6 +765,9 @@ window.addEventListener("keyup", e => {
             break;
         case "d":
             globalThis.RIGHT = false;
+            break;
+        case " ":
+            globalThis.SPACE = false;
             break;
     }
 });
@@ -779,7 +823,7 @@ class Player extends GameObject {
         this.knockBackMag = 20;
         this.maxDashMag = 40;
         this.maxAimTime = 500;
-        this.lives = 10;
+        this.lives = 3;
         this.indicator = new Sprite(globalThis.spritesheet.textures["arrow.png"]);
         this.sprite = new Sprite(globalThis.spritesheet.textures["player.png"]);
         this.sprite.zIndex = 1;
@@ -875,11 +919,8 @@ class Player extends GameObject {
                 this.radius -= 0.5;
                 this.sprite.angle += 6;
                 if (this.radius <= 0) {
-                    globalThis.score -= 50;
-                    const screenPos = this.sprite.getGlobalPosition();
-                    flashScore(-50, screenPos.x, screenPos.y);
-                    this.lives--;
-                    this.respawn();
+                    if (--this.lives > 0)
+                        this.respawn();
                 }
                 break;
             }
