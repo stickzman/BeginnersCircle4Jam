@@ -22,6 +22,8 @@ class Player extends GameObject {
     startAimTime: number
     maxAimTime: number = 500
 
+    lives: number = 10
+
     static hitSound = new Howl({
         src: ['./assets/audio/hit.wav']
     })
@@ -69,7 +71,7 @@ class Player extends GameObject {
                 const faster = this.velocity.mag > e.velocity.mag
                 if (faster) {
                     if (this.state === PlayerState.DASH) {
-                        Enemy.combo = 0
+                        Enemy.combo = 1
                         // Squash enemy sprite, angle towards player
                         e.sprite.angle = this.sprite.angle
                         Camera.shake = .5 * (this.velocity.mag/this.maxDashMag + 0.1)
@@ -78,6 +80,7 @@ class Player extends GameObject {
                         e.velocity.set(Vector.mult(collisionVector, this.velocity.mag))
                         Player.attackSound.play()
                         e.state = EnemyState.DASH_KNOCK_BACK
+                        globalThis.score += 5
                     } else {
                         Player.smallHitSound.play()
                     }
@@ -148,6 +151,10 @@ class Player extends GameObject {
                 this.radius -= 0.5
                 this.sprite.angle += 6
                 if (this.radius <= 0) {
+                    globalThis.score -= 50
+                    const screenPos = this.sprite.getGlobalPosition()
+                    flashScore(-50, screenPos.x, screenPos.y)
+                    this.lives--
                     this.respawn()
                 }
                 break
@@ -242,6 +249,7 @@ class Player extends GameObject {
         this.y = 0
         this.velocity.set(0, 0)
         this.radius = this.initialRadius
+        Enemy.combo = 1
     }
 
     reInitialize() {

@@ -12,7 +12,7 @@ enum EnemyState {
 
 class Enemy extends GameObject {
     static enemies: Enemy[] = []
-    static combo = 0
+    static combo = 1
     static comboSounds = [
         new Howl({
             src: ['./assets/audio/combo1.wav'],
@@ -110,10 +110,13 @@ class Enemy extends GameObject {
                     globalThis.frameHalt = 5
                     Player.attackSound.play()
                     Enemy.combo++
-                    const i = (Enemy.combo >= Enemy.comboSounds.length)
+                    const i = (Enemy.combo > Enemy.comboSounds.length)
                                 ? Enemy.comboSounds.length - 1
-                                : Enemy.combo
+                                : Enemy.combo - 2
                     Enemy.comboSounds[i].play()
+                    globalThis.score += 5 ** Enemy.combo
+                    const pos = this.sprite.getGlobalPosition()
+                    flashScore(5 ** Enemy.combo, pos.x, pos.y - 50, 0x3083dc)
                 } else {
                     Enemy.hitSound.play()
                     this.state = EnemyState.KNOCK_BACK
@@ -197,6 +200,9 @@ class Enemy extends GameObject {
                 if (this.radius <= 0) {
                     this.state = EnemyState.INACTIVE
                     Enemy.deathSound.play()
+                    globalThis.score += 50 * Enemy.combo**2
+                    const screenPos = this.sprite.getGlobalPosition()
+                    flashScore(50 * Enemy.combo**2, screenPos.x, screenPos.y)
                 }
                 break
             }

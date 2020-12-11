@@ -135,6 +135,8 @@ class Camera {
         this.rotationLayer.pivot.set(this.renderer.width / 2, this.renderer.height / 2);
         this.rotationLayer.x = this.renderer.width / 2;
         this.rotationLayer.y = this.renderer.height / 2;
+        this.UILayer = new PIXI.Container();
+        this.UILayer.addChild(this.rotationLayer);
         this.x = x;
         this.y = y;
     }
@@ -162,6 +164,14 @@ class Camera {
         this.x = container.x;
         this.y = container.y;
     }
+    addText(text, style, x = 0, y = 0) {
+        const t = new PIXI.Text(text, style);
+        t.roundPixels = true;
+        t.x = x;
+        t.y = y;
+        this.UILayer.addChild(t);
+        return t;
+    }
     render() {
         if (Camera.shake > 0) {
             const offsetX = this.maxShakeOffset * Math.pow(Camera.shake, 2) * (Math.random() * 2 - 1);
@@ -170,7 +180,7 @@ class Camera {
             Camera.stage.y = this.y + this.height / 2 - offsetY;
             Camera.shake -= this.shakeDecrease;
         }
-        this.renderer.render(this.rotationLayer);
+        this.renderer.render(this.UILayer);
     }
 }
 Camera.shake = 0;
@@ -323,10 +333,13 @@ class Enemy extends GameObject {
                     globalThis.frameHalt = 5;
                     Player.attackSound.play();
                     Enemy.combo++;
-                    const i = (Enemy.combo >= Enemy.comboSounds.length)
+                    const i = (Enemy.combo > Enemy.comboSounds.length)
                         ? Enemy.comboSounds.length - 1
-                        : Enemy.combo;
+                        : Enemy.combo - 2;
                     Enemy.comboSounds[i].play();
+                    globalThis.score += Math.pow(5, Enemy.combo);
+                    const pos = this.sprite.getGlobalPosition();
+                    flashScore(Math.pow(5, Enemy.combo), pos.x, pos.y - 50, 0x3083dc);
                 }
                 else {
                     Enemy.hitSound.play();
@@ -400,6 +413,9 @@ class Enemy extends GameObject {
                 if (this.radius <= 0) {
                     this.state = EnemyState.INACTIVE;
                     Enemy.deathSound.play();
+                    globalThis.score += 50 * Math.pow(Enemy.combo, 2);
+                    const screenPos = this.sprite.getGlobalPosition();
+                    flashScore(50 * Math.pow(Enemy.combo, 2), screenPos.x, screenPos.y);
                 }
                 break;
             }
@@ -504,7 +520,7 @@ class Enemy extends GameObject {
     }
 }
 Enemy.enemies = [];
-Enemy.combo = 0;
+Enemy.combo = 1;
 Enemy.comboSounds = [
     new Howl({
         src: ['./assets/audio/combo1.wav'],
@@ -546,13 +562,76 @@ class Graphic extends PIXI.Graphics {
     }
 }
 var Howl;
+var WebFont;
+let levelUpSound = new Howl({
+    src: ['./assets/audio/levelup.wav'],
+    volume: 1
+});
 let cam = new Camera();
 var player;
 let platform;
 let level = 0;
-PIXI.Loader.shared
-    .add("sheet", "./spritesheets/sheet.json")
-    .load(init);
+var score = 0;
+let scoreBoard;
+let highScore = localStorage.getItem("highScore");
+highScore = (highScore) ? parseInt(highScore) : 0;
+let highScoreBoard;
+let levelText;
+let livesCounter;
+let floatScore;
+var flashScore = function (score, x, y, color = 0xFFFFFF) {
+    floatScore.text = (score > 0) ? "+" + score.toString() : score.toString();
+    x = Math.min(cam.width - floatScore.width - 10, x);
+    x = Math.max(10, x);
+    y = Math.min(cam.height - floatScore.height - 10, y);
+    y = Math.max(10, y);
+    floatScore.x = x;
+    floatScore.y = y;
+    floatScore.alpha = 1;
+    floatScore.style.fill = 0x3083dc;
+};
+WebFont.load({
+    google: {
+        families: ['Press Start 2P']
+    },
+    active: e => {
+        PIXI.Loader.shared
+            .add("sheet", "./spritesheets/sheet.json")
+            .load(init);
+        scoreBoard = cam.addText("Score:\n\n0", {
+            "fontFamily": "Press Start 2P",
+            "fill": 0xFFFFFF,
+            "fontSize": "20px"
+        }, 25, 25);
+        highScoreBoard = cam.addText("High\nScore:\n\n" + highScore, {
+            "fontFamily": "Press Start 2P",
+            "fill": 0xFFFFFF,
+            "fontSize": "20px"
+        }, 25, 0);
+        highScoreBoard.y = cam.height - highScoreBoard.height - 25;
+        livesCounter = cam.addText("Lives:\n\n0", {
+            "fontFamily": "Press Start 2P",
+            "fill": 0xFFFFFF,
+            "align": "center",
+            "fontSize": "20px"
+        }, 0, 0);
+        livesCounter.y = cam.height - livesCounter.height - 25;
+        livesCounter.x = cam.width - livesCounter.width - 25;
+        levelText = cam.addText("Level\n\n0", {
+            "fontFamily": "Press Start 2P",
+            "fill": 0xFFFFFF,
+            "align": "center",
+            "fontSize": "20px"
+        }, 0, 25);
+        levelText.x = cam.width - levelText.width - 25;
+        floatScore = cam.addText("", {
+            "fontFamily": "Press Start 2P",
+            "fill": 0xFFFFFF,
+            "alpha": 0,
+            "fontSize": "20px"
+        });
+    }
+});
 function init(loader, resources) {
     const sheet = resources["sheet"].spritesheet;
     globalThis.spritesheet = sheet;
@@ -575,7 +654,7 @@ function tick() {
     }
     Collider.update();
     player.update();
-    for (const [i, e] of Enemy.enemies.entries()) {
+    for (const e of Enemy.enemies) {
         if (e.state === EnemyState.INACTIVE) {
             e.destroy();
             continue;
@@ -583,13 +662,36 @@ function tick() {
         e.update();
     }
     if (Enemy.enemies.length === 0) {
-        console.log("YOU WIN!");
-        reset();
-        Enemy.spawn(++level);
+        levelText.text = "Level\n\n" + ++level;
+        Enemy.spawn((level * 2) - 1);
+        if (level > 1)
+            levelUpSound.play();
+        setTimeout(() => {
+            levelText.alpha = 0;
+        }, 500);
+        setTimeout(() => {
+            levelText.alpha = 1;
+        }, 1000);
+        setTimeout(() => {
+            levelText.alpha = 0;
+        }, 1500);
+        setTimeout(() => {
+            levelText.alpha = 1;
+        }, 2000);
+    }
+    score = (score < 0) ? 0 : score;
+    scoreBoard.text = "Score:\n\n" + score;
+    livesCounter.text = "Lives:\n\n" + player.lives;
+    if (floatScore.alpha > 0) {
+        floatScore.alpha -= 0.01;
     }
     cam.render();
     frameID = window.requestAnimationFrame(tick);
 }
+window.addEventListener("beforeunload", function () {
+    if (score > highScore)
+        localStorage.setItem("highScore", score.toString());
+});
 var UP, DOWN, LEFT, RIGHT, LEFT_MOUSE, RIGHT_MOUSE;
 var mouseX = 0;
 var mouseY = 0;
@@ -677,6 +779,7 @@ class Player extends GameObject {
         this.knockBackMag = 20;
         this.maxDashMag = 40;
         this.maxAimTime = 500;
+        this.lives = 10;
         this.indicator = new Sprite(globalThis.spritesheet.textures["arrow.png"]);
         this.sprite = new Sprite(globalThis.spritesheet.textures["player.png"]);
         this.sprite.zIndex = 1;
@@ -704,13 +807,14 @@ class Player extends GameObject {
                 const faster = this.velocity.mag > e.velocity.mag;
                 if (faster) {
                     if (this.state === PlayerState.DASH) {
-                        Enemy.combo = 0;
+                        Enemy.combo = 1;
                         e.sprite.angle = this.sprite.angle;
                         Camera.shake = .5 * (this.velocity.mag / this.maxDashMag + 0.1);
                         globalThis.frameHalt = 5;
                         e.velocity.set(Vector.mult(collisionVector, this.velocity.mag));
                         Player.attackSound.play();
                         e.state = EnemyState.DASH_KNOCK_BACK;
+                        globalThis.score += 5;
                     }
                     else {
                         Player.smallHitSound.play();
@@ -771,6 +875,10 @@ class Player extends GameObject {
                 this.radius -= 0.5;
                 this.sprite.angle += 6;
                 if (this.radius <= 0) {
+                    globalThis.score -= 50;
+                    const screenPos = this.sprite.getGlobalPosition();
+                    flashScore(-50, screenPos.x, screenPos.y);
+                    this.lives--;
                     this.respawn();
                 }
                 break;
@@ -854,6 +962,7 @@ class Player extends GameObject {
         this.y = 0;
         this.velocity.set(0, 0);
         this.radius = this.initialRadius;
+        Enemy.combo = 1;
     }
     reInitialize() {
         Camera.stage.addChild(this.indicator);

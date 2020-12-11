@@ -14,6 +14,7 @@ class Camera {
     static stage: PIXI.Container
 
     private readonly rotationLayer: PIXI.Container
+    private readonly UILayer: PIXI.Container
     private pos: Vector = new Vector(0, 0)
 
     constructor(selector = "body", x = 0, y = 0) {
@@ -25,11 +26,15 @@ class Camera {
         this.height = this.renderer.height
 
         Camera.stage = new PIXI.Container()
+
         this.rotationLayer = new PIXI.Container()
         this.rotationLayer.addChild(Camera.stage)
         this.rotationLayer.pivot.set(this.renderer.width/2, this.renderer.height/2)
         this.rotationLayer.x = this.renderer.width/2
         this.rotationLayer.y = this.renderer.height/2
+
+        this.UILayer = new PIXI.Container()
+        this.UILayer.addChild(this.rotationLayer)
 
         this.x = x
         this.y = y
@@ -66,6 +71,15 @@ class Camera {
         this.y = container.y
     }
 
+    addText(text: string, style: object | PIXI.TextStyle, x = 0, y = 0): PIXI.Text {
+        const t = new PIXI.Text(text, style)
+        t.roundPixels = true
+        t.x = x
+        t.y = y
+        this.UILayer.addChild(t)
+        return t
+    }
+
     render() {
         if (Camera.shake > 0) {
             const offsetX = this.maxShakeOffset * Camera.shake**2 * (Math.random() * 2 - 1)
@@ -74,6 +88,6 @@ class Camera {
             Camera.stage.y = this.y + this.height/2 - offsetY
             Camera.shake -= this.shakeDecrease
         }
-        this.renderer.render(this.rotationLayer)
+        this.renderer.render(this.UILayer)
     }
 }
