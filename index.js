@@ -836,7 +836,6 @@ class Player extends GameObject {
                 this.state = PlayerState.DEAD;
                 this.initialRadius = this.radius;
                 Player.fallSound.play();
-                console.log("YOU DIED");
             }
         });
         this.collider.on("enter", (col) => {
