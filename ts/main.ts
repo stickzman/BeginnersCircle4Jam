@@ -282,7 +282,7 @@ function runTutorial() {
 function updateTutText(t: string) {
     tutorialText.text = t
     tutorialText.x = cam.width/2 - tutorialText.width/2
-    tutorialText.y = cam.height/2 - tutorialText.height - 50
+    tutorialText.y = cam.height/2 - tutorialText.height - 40
 }
 function updateTutSubText(t: string) {
     tutorialSubtext.text = t
