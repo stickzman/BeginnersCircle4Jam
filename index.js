@@ -563,6 +563,7 @@ class Graphic extends PIXI.Graphics {
 }
 var Howl;
 var WebFont;
+var tutorial = true;
 const levelUpSound = new Howl({
     src: ['./assets/audio/levelup.wav'],
     volume: 1
@@ -576,13 +577,15 @@ var player;
 let platform;
 let level = 0;
 var score = 0;
-let scoreBoard;
 let highScore = 0;
+let scoreBoard;
 let highScoreBoard;
 let gameOverScreen;
 let levelText;
 let livesCounter;
 let floatScore;
+let tutorialText;
+let tutorialSubtext;
 var flashScore = function (score, x, y, color = 0xFFFFFF) {
     floatScore.text = (score > 0) ? "+" + score.toString() : score.toString();
     x = Math.min(cam.width - floatScore.width - 10, x);
@@ -643,6 +646,24 @@ WebFont.load({
         gameOverScreen.x = cam.width / 2 - gameOverScreen.width / 2;
         gameOverScreen.y = cam.height / 2 - gameOverScreen.height / 2;
         gameOverScreen.alpha = 0;
+        tutorialText = cam.addText("Welcome to\nLast Man Standing!", {
+            "fontFamily": "Press Start 2P",
+            "fill": 0x000000,
+            "fontSize": "24px",
+            "align": "center"
+        });
+        tutorialText.x = cam.width / 2 - tutorialText.width / 2;
+        tutorialText.y = cam.height / 2 - tutorialText.height - 50;
+        tutStartTime = performance.now();
+        tutorialSubtext = cam.addText("Be careful not to\nthrow yourself off the platform!", {
+            "fontFamily": "Press Start 2P",
+            "fill": 0x000000,
+            "fontSize": "14px",
+            "align": "center"
+        });
+        tutorialSubtext.x = cam.width / 2 - tutorialSubtext.width / 2;
+        tutorialSubtext.y = cam.height / 2 + tutorialSubtext.height + 100;
+        tutorialSubtext.alpha = 0;
     }
 });
 function init(loader, resources) {
@@ -662,6 +683,8 @@ function tick() {
         cam.render();
         return;
     }
+    if (tutorial)
+        runTutorial();
     score = (score < 0) ? 0 : score;
     scoreBoard.text = "Score:\n" + score;
     livesCounter.text = "Lives:\n" + player.lives;
@@ -684,11 +707,10 @@ function tick() {
         }
         e.update();
     }
-    if (Enemy.enemies.length === 0) {
+    if (!tutorial && Enemy.enemies.length === 0) {
         levelText.text = "Level\n" + ++level;
         Enemy.spawn((level * 2) - 1);
-        if (level > 1)
-            levelUpSound.play();
+        levelUpSound.play();
         setTimeout(() => {
             levelText.alpha = 0;
         }, 500);
@@ -703,7 +725,7 @@ function tick() {
         }, 2000);
     }
     cam.render();
-    if (player.lives <= 0) {
+    if (!tutorial && player.lives <= 0) {
         Enemy.clear();
         gameOver = true;
         gameOverScreen.alpha = 1;
@@ -711,9 +733,103 @@ function tick() {
         if (score > highScore) {
             highScore = score;
             highScoreBoard.text = "High\nScore:\n" + highScore;
+            setTimeout(() => {
+                highScoreBoard.alpha = 0;
+            }, 500);
+            setTimeout(() => {
+                highScoreBoard.alpha = 1;
+            }, 1000);
+            setTimeout(() => {
+                highScoreBoard.alpha = 0;
+            }, 1500);
+            setTimeout(() => {
+                highScoreBoard.alpha = 1;
+            }, 2000);
         }
     }
     frameID = window.requestAnimationFrame(tick);
+}
+let tutStartTime;
+var TutorialStage;
+(function (TutorialStage) {
+    TutorialStage[TutorialStage["INTRO"] = 0] = "INTRO";
+    TutorialStage[TutorialStage["MOVEMENT"] = 1] = "MOVEMENT";
+    TutorialStage[TutorialStage["AIMING"] = 2] = "AIMING";
+    TutorialStage[TutorialStage["FULLCHARGE"] = 3] = "FULLCHARGE";
+    TutorialStage[TutorialStage["CONCLUSION"] = 4] = "CONCLUSION";
+})(TutorialStage || (TutorialStage = {}));
+let state = TutorialStage.INTRO;
+let tryUp = false;
+let tryDown = false;
+let tryLeft = false;
+let tryRight = false;
+let chargeStart = false;
+let chargeFull = false;
+function runTutorial() {
+    switch (state) {
+        case TutorialStage.INTRO: {
+            if (performance.now() - state > 4000)
+                state = TutorialStage.MOVEMENT;
+            break;
+        }
+        case TutorialStage.MOVEMENT: {
+            updateTutText("Use W,A,S,D to move.");
+            if (globalThis.UP)
+                tryUp = true;
+            if (globalThis.DOWN)
+                tryDown = true;
+            if (globalThis.LEFT)
+                tryLeft = true;
+            if (globalThis.RIGHT)
+                tryRight = true;
+            if (tryUp && tryDown && tryLeft && tryRight)
+                state = TutorialStage.AIMING;
+            break;
+        }
+        case TutorialStage.AIMING: {
+            tutorialText.style.fontSize = "20px";
+            updateTutText("Aim with the mouse cursor.\nHold Left Mouse Button\nto charge your body slam!");
+            if (globalThis.LEFT_MOUSE)
+                chargeStart = true;
+            if (chargeStart && !globalThis.LEFT_MOUSE)
+                state = TutorialStage.FULLCHARGE;
+            break;
+        }
+        case TutorialStage.FULLCHARGE: {
+            updateTutText("Hold down the\nLeft Mouse button\nto fully charge your slam!");
+            updateTutSubText("Try to chain hits together\nfor a multiplier!");
+            if (player.indicator.height === 100)
+                chargeFull = true;
+            if (chargeFull && !globalThis.LEFT_MOUSE)
+                state = TutorialStage.CONCLUSION;
+            break;
+        }
+        case TutorialStage.CONCLUSION: {
+            updateTutText("Looking good!\nMake sure you're the last\none on the platform\nto win the round!");
+            updateTutSubText("Press spacebar to start the game!");
+            if (globalThis.SPACE) {
+                tutorialText.destroy();
+                tutorialSubtext.destroy();
+                tutorial = false;
+                reset();
+            }
+            break;
+        }
+    }
+    if (player.state === PlayerState.DEAD) {
+        updateTutSubText("Be careful!");
+    }
+}
+function updateTutText(t) {
+    tutorialText.text = t;
+    tutorialText.x = cam.width / 2 - tutorialText.width / 2;
+    tutorialText.y = cam.height / 2 - tutorialText.height - 50;
+}
+function updateTutSubText(t) {
+    tutorialSubtext.text = t;
+    tutorialSubtext.x = cam.width / 2 - tutorialSubtext.width / 2;
+    tutorialSubtext.y = cam.height / 2 + tutorialSubtext.height + 50;
+    tutorialSubtext.alpha = 1;
 }
 function reset() {
     Enemy.clear();
@@ -913,7 +1029,7 @@ class Player extends GameObject {
                 this.radius -= 0.5;
                 this.sprite.angle += 6;
                 if (this.radius <= 0) {
-                    if (--this.lives > 0)
+                    if (tutorial || --this.lives > 0)
                         this.respawn();
                 }
                 break;
