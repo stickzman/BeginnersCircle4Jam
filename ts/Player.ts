@@ -22,7 +22,7 @@ class Player extends GameObject {
     startAimTime: number
     maxAimTime: number = 500
 
-    lives: number = 3
+    lives: number = 10
 
     static hitSound = new Howl({
         src: ['./assets/audio/hit.wav']

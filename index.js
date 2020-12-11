@@ -719,7 +719,7 @@ function tick() {
 }
 function reset() {
     Enemy.clear();
-    player.lives = 3;
+    player.lives = 10;
     player.respawn();
     level = 0;
     gameOver = false;
@@ -823,7 +823,7 @@ class Player extends GameObject {
         this.knockBackMag = 20;
         this.maxDashMag = 40;
         this.maxAimTime = 500;
-        this.lives = 3;
+        this.lives = 10;
         this.indicator = new Sprite(globalThis.spritesheet.textures["arrow.png"]);
         this.sprite = new Sprite(globalThis.spritesheet.textures["player.png"]);
         this.sprite.zIndex = 1;

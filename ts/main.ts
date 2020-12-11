@@ -181,7 +181,7 @@ function tick() {
 
 function reset() {
     Enemy.clear()
-    player.lives = 3
+    player.lives = 10
     player.respawn()
     level = 0
     gameOver = false
