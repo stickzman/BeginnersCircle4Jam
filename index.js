@@ -577,8 +577,7 @@ let platform;
 let level = 0;
 var score = 0;
 let scoreBoard;
-let highScore = localStorage.getItem("highScore");
-highScore = (highScore) ? parseInt(highScore) : 0;
+let highScore = 0;
 let highScoreBoard;
 let gameOverScreen;
 let levelText;
@@ -710,7 +709,6 @@ function tick() {
         gameOverScreen.alpha = 1;
         gameOverSound.play();
         if (score > highScore) {
-            localStorage.setItem("highScore", score.toString());
             highScore = score;
             highScoreBoard.text = "High\nScore:\n\n" + highScore;
         }
@@ -727,10 +725,6 @@ function reset() {
     gameOverScreen.alpha = 0;
     levelUpSound.play();
 }
-window.addEventListener("beforeunload", function () {
-    if (score > highScore)
-        localStorage.setItem("highScore", score.toString());
-});
 var UP, DOWN, LEFT, RIGHT, LEFT_MOUSE, RIGHT_MOUSE;
 var mouseX = 0;
 var mouseY = 0;
