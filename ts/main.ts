@@ -47,18 +47,18 @@ WebFont.load({
             .add("sheet", "./spritesheets/sheet.json")
             .load(init)
 
-        scoreBoard = cam.addText("Score:\n\n0", {
+        scoreBoard = cam.addText("Score:\n0", {
             "fontFamily": "Press Start 2P",
             "fill": 0xFFFFFF,
             "fontSize": "20px"
         }, 25, 25)
-        highScoreBoard = cam.addText("High\nScore:\n\n" + highScore, {
+        highScoreBoard = cam.addText("High\nScore:\n" + highScore, {
             "fontFamily": "Press Start 2P",
             "fill": 0xFFFFFF,
             "fontSize": "20px"
         }, 25, 0)
         highScoreBoard.y = cam.height - highScoreBoard.height - 25
-        livesCounter = cam.addText("Lives:\n\n0", {
+        livesCounter = cam.addText("Lives:\n0", {
             "fontFamily": "Press Start 2P",
             "fill": 0xFFFFFF,
             "align": "center",
@@ -66,7 +66,7 @@ WebFont.load({
         }, 0, 0)
         livesCounter.y = cam.height - livesCounter.height - 25
         livesCounter.x = cam.width - livesCounter.width - 25
-        levelText = cam.addText("Level\n\n0", {
+        levelText = cam.addText("Level\n0", {
             "fontFamily": "Press Start 2P",
             "fill": 0xFFFFFF,
             "align": "center",
@@ -79,7 +79,7 @@ WebFont.load({
             "alpha": 0,
             "fontSize": "20px"
         })
-        gameOverScreen = cam.addText("Game Over!\n\n\n\nPress\n\nSpacebar\n\nto play again", {
+        gameOverScreen = cam.addText("Game Over!\n\nPress\nSpacebar\nto play again", {
             "fontFamily": "Press Start 2P",
             "fill": 0x000000,
             "fontSize": "32px",
@@ -120,8 +120,8 @@ function tick() {
     }
 
     score = (score < 0) ? 0 : score
-    scoreBoard.text = "Score:\n\n" + score
-    livesCounter.text = "Lives:\n\n" + player.lives
+    scoreBoard.text = "Score:\n" + score
+    livesCounter.text = "Lives:\n" + player.lives
     if (floatScore.alpha > 0) {
         floatScore.alpha -= 0.01
     }
@@ -143,7 +143,7 @@ function tick() {
         e.update()
     }
     if (Enemy.enemies.length === 0) {
-        levelText.text = "Level\n\n" + ++level
+        levelText.text = "Level\n" + ++level
         Enemy.spawn((level * 2) - 1)
         if (level > 1) levelUpSound.play()
         // This is a bad way to do this but im short on time
@@ -170,7 +170,7 @@ function tick() {
         gameOverSound.play()
         if (score > highScore) {
             highScore = score
-            highScoreBoard.text = "High\nScore:\n\n" + highScore
+            highScoreBoard.text = "High\nScore:\n" + highScore
         }
     }
 
