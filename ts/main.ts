@@ -184,6 +184,7 @@ function reset() {
     player.lives = 10
     player.respawn()
     level = 0
+    score = 0
     gameOver = false
     gameOverScreen.alpha = 0
     levelUpSound.play()
