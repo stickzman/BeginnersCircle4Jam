@@ -169,7 +169,7 @@ function tick() {
     }
     if (!tutorial && Enemy.enemies.length === 0) {
         levelText.text = "Level\n" + ++level
-        Enemy.spawn((level * 2) - 1)
+        Enemy.spawn(level)
         levelUpSound.play()
         // This is a bad way to do this but im short on time
         setTimeout(() => {
@@ -214,7 +214,7 @@ function tick() {
     frameID = window.requestAnimationFrame(tick)
 }
 
-let tutStartTime
+let tutStartTime: number
 enum TutorialStage {
     INTRO,
     MOVEMENT,

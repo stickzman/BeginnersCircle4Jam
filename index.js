@@ -727,7 +727,7 @@ function tick() {
     }
     if (!tutorial && Enemy.enemies.length === 0) {
         levelText.text = "Level\n" + ++level;
-        Enemy.spawn((level * 2) - 1);
+        Enemy.spawn(level);
         levelUpSound.play();
         setTimeout(() => {
             levelText.alpha = 0;
