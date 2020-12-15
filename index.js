@@ -964,6 +964,9 @@ let platform;
 let level = 0;
 var score = 0;
 let highScore = 0;
+if (localStorage)
+    highScore = parseInt(localStorage.getItem("highscore")) || 0;
+let oldHighScore = 0;
 let scoreBoard;
 let highScoreBoard;
 let gameOverScreen;
@@ -1055,6 +1058,7 @@ var frameID;
 function init(loader, resources) {
     const sheet = resources["sheet"].spritesheet;
     globalThis.spritesheet = sheet;
+    oldHighScore = highScore;
     platform = new Platform();
     player = new Player();
     Timer.start("tutorialStart");
@@ -1107,14 +1111,16 @@ function tick() {
         setTimeout(() => { levelText.alpha = 1; }, 2000);
     }
     cam.render();
+    if (score > highScore) {
+        highScore = score;
+        highScoreBoard.text = "High\nScore:\n" + highScore;
+    }
     if (player.lives <= 0) {
         Enemy.clear();
         gameOver = true;
         gameOverScreen.alpha = 1;
         gameOverSound.play();
-        if (score > highScore) {
-            highScore = score;
-            highScoreBoard.text = "High\nScore:\n" + highScore;
+        if (highScore > oldHighScore) {
             setTimeout(() => { highScoreBoard.alpha = 0; }, 500);
             setTimeout(() => { highScoreBoard.alpha = 1; }, 1000);
             setTimeout(() => { highScoreBoard.alpha = 0; }, 1500);
@@ -1131,8 +1137,13 @@ function reset() {
     score = 0;
     gameOver = false;
     gameOverScreen.alpha = 0;
+    oldHighScore = highScore;
     levelUpSound.play();
 }
+window.addEventListener("beforeunload", () => {
+    if (localStorage)
+        localStorage.setItem("highscore", highScore.toString());
+});
 var UP, DOWN, LEFT, RIGHT, LEFT_MOUSE, RIGHT_MOUSE;
 var mouseX = 0;
 var mouseY = 0;

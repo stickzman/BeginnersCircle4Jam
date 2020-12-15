@@ -23,6 +23,8 @@ let platform: Platform
 let level = 0
 var score = 0
 let highScore = 0
+if (localStorage) highScore = parseInt(localStorage.getItem("highscore")) || 0
+let oldHighScore = 0
 
 let scoreBoard: PIXI.Text
 let highScoreBoard: PIXI.Text
@@ -122,6 +124,8 @@ function init(loader, resources) {
     const sheet = resources["sheet"].spritesheet
     globalThis.spritesheet = sheet
 
+    oldHighScore = highScore
+
     platform = new Platform()
     player = new Player()
 
@@ -130,7 +134,7 @@ function init(loader, resources) {
     // new Enemy(150, 0)
     // new Enemy(200, 0)
     // new Enemy(250, 0)
-    
+
     Timer.start("tutorialStart")
     frameID = window.requestAnimationFrame(tutorialTick)
 }
@@ -188,14 +192,17 @@ function tick() {
 
     cam.render()
 
+    if (score > highScore) {
+        highScore = score
+        highScoreBoard.text = "High\nScore:\n" + highScore
+    }
+
     if (player.lives <= 0) {
         Enemy.clear()
         gameOver = true
         gameOverScreen.alpha = 1
         gameOverSound.play()
-        if (score > highScore) {
-            highScore = score
-            highScoreBoard.text = "High\nScore:\n" + highScore
+        if (highScore > oldHighScore) {
             setTimeout(() => { highScoreBoard.alpha = 0 }, 500)
             setTimeout(() => { highScoreBoard.alpha = 1 }, 1000)
             setTimeout(() => { highScoreBoard.alpha = 0 }, 1500)
@@ -214,5 +221,10 @@ function reset() {
     score = 0
     gameOver = false
     gameOverScreen.alpha = 0
+    oldHighScore = highScore
     levelUpSound.play()
 }
+
+window.addEventListener("beforeunload", () => {
+    if (localStorage) localStorage.setItem("highscore", highScore.toString())
+})
