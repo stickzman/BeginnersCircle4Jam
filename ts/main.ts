@@ -1,6 +1,7 @@
 /// <reference path="Camera.ts" />
 /// <reference path="Collider.ts" />
 /// <reference path="Tutorial.ts" />
+/// <reference path="Timer.ts" />
 /// <reference path="Enemy.ts" />
 /// <reference path="Player.ts" />
 
@@ -116,6 +117,7 @@ WebFont.load({
     }
 })
 
+var frameID: number
 function init(loader, resources) {
     const sheet = resources["sheet"].spritesheet
     globalThis.spritesheet = sheet
@@ -123,8 +125,8 @@ function init(loader, resources) {
     platform = new Platform()
     player = new Player()
 
-    Tutorial.tutStartTime = performance.now()
-    window.requestAnimationFrame(tutorialTick)
+    Timer.start("tutorialStart")
+    frameID = window.requestAnimationFrame(tutorialTick)
 }
 
 function tutorialTick() {
@@ -134,13 +136,12 @@ function tutorialTick() {
     cam.render()
 
     if (Tutorial.running) {
-        window.requestAnimationFrame(tutorialTick)
+        frameID = window.requestAnimationFrame(tutorialTick)
     } else {
-        window.requestAnimationFrame(tick)
+        frameID = window.requestAnimationFrame(tick)
     }
 }
 
-var frameID: number
 var frameHalt = 0
 let gameOver = false
 function tick() {
@@ -178,19 +179,11 @@ function tick() {
         levelText.text = "Level\n" + ++level
         Enemy.spawn(level)
         levelUpSound.play()
-        // This is a bad way to do this but im short on time
-        setTimeout(() => {
-            levelText.alpha = 0
-        }, 500)
-        setTimeout(() => {
-            levelText.alpha = 1
-        }, 1000)
-        setTimeout(() => {
-            levelText.alpha = 0
-        }, 1500)
-        setTimeout(() => {
-            levelText.alpha = 1
-        }, 2000)
+
+        setTimeout(() => { levelText.alpha = 0 }, 500)
+        setTimeout(() => { levelText.alpha = 1 }, 1000)
+        setTimeout(() => { levelText.alpha = 0 }, 1500)
+        setTimeout(() => { levelText.alpha = 1 }, 2000)
     }
 
     cam.render()
@@ -203,18 +196,10 @@ function tick() {
         if (score > highScore) {
             highScore = score
             highScoreBoard.text = "High\nScore:\n" + highScore
-            setTimeout(() => {
-                highScoreBoard.alpha = 0
-            }, 500)
-            setTimeout(() => {
-                highScoreBoard.alpha = 1
-            }, 1000)
-            setTimeout(() => {
-                highScoreBoard.alpha = 0
-            }, 1500)
-            setTimeout(() => {
-                highScoreBoard.alpha = 1
-            }, 2000)
+            setTimeout(() => { highScoreBoard.alpha = 0 }, 500)
+            setTimeout(() => { highScoreBoard.alpha = 1 }, 1000)
+            setTimeout(() => { highScoreBoard.alpha = 0 }, 1500)
+            setTimeout(() => { highScoreBoard.alpha = 1 }, 2000)
         }
     }
 

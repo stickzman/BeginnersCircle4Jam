@@ -597,7 +597,7 @@ class Tutorial {
         }
         switch (this.state) {
             case TutorialStage.INTRO: {
-                if (performance.now() - this.state > 4000)
+                if (Timer.check("tutorialStart", 4000))
                     this.state = TutorialStage.MOVEMENT;
                 break;
             }
@@ -652,15 +652,21 @@ class Tutorial {
         return !Tutorial.skip && Tutorial.state !== TutorialStage.ENDED;
     }
     static updateTutText(t) {
-        tutorialText.text = t;
-        tutorialText.x = cam.width / 2 - tutorialText.width / 2;
-        tutorialText.y = cam.height / 2 - tutorialText.height - 40;
+        try {
+            tutorialText.text = t;
+            tutorialText.x = cam.width / 2 - tutorialText.width / 2;
+            tutorialText.y = cam.height / 2 - tutorialText.height - 40;
+        }
+        catch (e) { }
     }
     static updateTutSubText(t) {
-        tutorialSubtext.text = t;
-        tutorialSubtext.x = cam.width / 2 - tutorialSubtext.width / 2;
-        tutorialSubtext.y = cam.height / 2 + tutorialSubtext.height + 50;
-        tutorialSubtext.alpha = 1;
+        try {
+            tutorialSubtext.text = t;
+            tutorialSubtext.x = cam.width / 2 - tutorialSubtext.width / 2;
+            tutorialSubtext.y = cam.height / 2 + tutorialSubtext.height + 50;
+            tutorialSubtext.alpha = 1;
+        }
+        catch (e) { }
     }
 }
 Tutorial.skip = false;
@@ -671,6 +677,26 @@ Tutorial.tryLeft = false;
 Tutorial.tryRight = false;
 Tutorial.chargeStart = false;
 Tutorial.chargeFull = false;
+class Timer {
+    static check(id, duration, currTime = performance.now()) {
+        if (!Timer.timers.has(id))
+            Timer.timers.set(id, currTime);
+        const startTime = Timer.timers.get(id);
+        if (currTime - startTime >= duration) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+    static start(id, currTime = performance.now()) {
+        Timer.timers.set(id, currTime);
+    }
+    static remove(id) {
+        Timer.timers.delete(id);
+    }
+}
+Timer.timers = new Map();
 var PlayerState;
 (function (PlayerState) {
     PlayerState[PlayerState["DEAD"] = 0] = "DEAD";
@@ -995,13 +1021,14 @@ WebFont.load({
             .load(init);
     }
 });
+var frameID;
 function init(loader, resources) {
     const sheet = resources["sheet"].spritesheet;
     globalThis.spritesheet = sheet;
     platform = new Platform();
     player = new Player();
-    Tutorial.tutStartTime = performance.now();
-    window.requestAnimationFrame(tutorialTick);
+    Timer.start("tutorialStart");
+    frameID = window.requestAnimationFrame(tutorialTick);
 }
 function tutorialTick() {
     Tutorial.update();
@@ -1009,13 +1036,12 @@ function tutorialTick() {
     player.update();
     cam.render();
     if (Tutorial.running) {
-        window.requestAnimationFrame(tutorialTick);
+        frameID = window.requestAnimationFrame(tutorialTick);
     }
     else {
-        window.requestAnimationFrame(tick);
+        frameID = window.requestAnimationFrame(tick);
     }
 }
-var frameID;
 var frameHalt = 0;
 let gameOver = false;
 function tick() {
@@ -1051,18 +1077,10 @@ function tick() {
         levelText.text = "Level\n" + ++level;
         Enemy.spawn(level);
         levelUpSound.play();
-        setTimeout(() => {
-            levelText.alpha = 0;
-        }, 500);
-        setTimeout(() => {
-            levelText.alpha = 1;
-        }, 1000);
-        setTimeout(() => {
-            levelText.alpha = 0;
-        }, 1500);
-        setTimeout(() => {
-            levelText.alpha = 1;
-        }, 2000);
+        setTimeout(() => { levelText.alpha = 0; }, 500);
+        setTimeout(() => { levelText.alpha = 1; }, 1000);
+        setTimeout(() => { levelText.alpha = 0; }, 1500);
+        setTimeout(() => { levelText.alpha = 1; }, 2000);
     }
     cam.render();
     if (player.lives <= 0) {
@@ -1073,18 +1091,10 @@ function tick() {
         if (score > highScore) {
             highScore = score;
             highScoreBoard.text = "High\nScore:\n" + highScore;
-            setTimeout(() => {
-                highScoreBoard.alpha = 0;
-            }, 500);
-            setTimeout(() => {
-                highScoreBoard.alpha = 1;
-            }, 1000);
-            setTimeout(() => {
-                highScoreBoard.alpha = 0;
-            }, 1500);
-            setTimeout(() => {
-                highScoreBoard.alpha = 1;
-            }, 2000);
+            setTimeout(() => { highScoreBoard.alpha = 0; }, 500);
+            setTimeout(() => { highScoreBoard.alpha = 1; }, 1000);
+            setTimeout(() => { highScoreBoard.alpha = 0; }, 1500);
+            setTimeout(() => { highScoreBoard.alpha = 1; }, 2000);
         }
     }
     frameID = window.requestAnimationFrame(tick);

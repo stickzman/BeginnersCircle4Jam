@@ -8,7 +8,6 @@ enum TutorialStage {
 }
 class Tutorial {
     static skip = false
-    static tutStartTime: number
     static state = TutorialStage.INTRO
     static tryUp = false
     static tryDown = false
@@ -26,7 +25,7 @@ class Tutorial {
 
         switch (this.state) {
             case TutorialStage.INTRO: {
-                if (performance.now() - this.state > 4000)
+                if (Timer.check("tutorialStart", 4000))
                     this.state = TutorialStage.MOVEMENT
                 break
             }
@@ -77,14 +76,18 @@ class Tutorial {
     }
 
     static updateTutText(t: string) {
-        tutorialText.text = t
-        tutorialText.x = cam.width/2 - tutorialText.width/2
-        tutorialText.y = cam.height/2 - tutorialText.height - 40
+        try {
+            tutorialText.text = t
+            tutorialText.x = cam.width/2 - tutorialText.width/2
+            tutorialText.y = cam.height/2 - tutorialText.height - 40
+        } catch(e) { }
     }
     static updateTutSubText(t: string) {
-        tutorialSubtext.text = t
-        tutorialSubtext.x = cam.width/2 - tutorialSubtext.width/2
-        tutorialSubtext.y = cam.height/2 + tutorialSubtext.height + 50
-        tutorialSubtext.alpha = 1
+        try {
+            tutorialSubtext.text = t
+            tutorialSubtext.x = cam.width/2 - tutorialSubtext.width/2
+            tutorialSubtext.y = cam.height/2 + tutorialSubtext.height + 50
+            tutorialSubtext.alpha = 1
+        } catch(e) { }
     }
 }
