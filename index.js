@@ -74,7 +74,7 @@ class Vector {
         return this;
     }
     get mag() {
-        return Math.sqrt(Math.pow(this.x, 2) + Math.pow(this.y, 2));
+        return Math.sqrt(this.x ** 2 + this.y ** 2);
     }
     set mag(m) {
         this.normalize().mult(m);
@@ -115,7 +115,7 @@ class Vector {
         return new Vector(v1.x + v2.x, v1.y + v2.y);
     }
     static dist(v1, v2) {
-        return Math.sqrt(Math.pow((v2.x - v1.x), 2) + Math.pow((v2.y - v1.y), 2));
+        return Math.sqrt((v2.x - v1.x) ** 2 + (v2.y - v1.y) ** 2);
     }
 }
 PIXI.settings.SORTABLE_CHILDREN = true;
@@ -193,8 +193,8 @@ class Camera {
     }
     render() {
         if (this.shake > 0) {
-            const offsetX = this.maxShakeOffset * Math.pow(this.shake, 2) * (Math.random() * 2 - 1);
-            const offsetY = this.maxShakeOffset * Math.pow(this.shake, 2) * (Math.random() * 2 - 1);
+            const offsetX = this.maxShakeOffset * this.shake ** 2 * (Math.random() * 2 - 1);
+            const offsetY = this.maxShakeOffset * this.shake ** 2 * (Math.random() * 2 - 1);
             this.stage.x = this.x + this.width / 2 - offsetX;
             this.stage.y = this.y + this.height / 2 - offsetY;
             this.shake -= this.shakeDecrease;
@@ -279,9 +279,11 @@ class Collider {
     static circleCheck(x, y, radius, filter) {
         const results = [];
         const checkCol = new Collider(null, radius, x, y);
+        if (typeof (filter) === "string")
+            filter = [filter];
         for (const c of Collider.allColliders) {
             if (Collider.touching(checkCol, c)) {
-                if (!filter || c.gameObj.tag === filter)
+                if (!filter || filter.includes(c.gameObj.tag))
                     results.push(c);
             }
         }
@@ -355,9 +357,9 @@ class Enemy extends GameObject {
                         ? Enemy.comboSounds.length - 1
                         : Enemy.combo - 2;
                     Enemy.comboSounds[i].play();
-                    globalThis.score += Math.pow(5, Enemy.combo);
+                    globalThis.score += 5 ** Enemy.combo;
                     const pos = this.sprite.getGlobalPosition();
-                    flashScore(Math.pow(5, Enemy.combo), pos.x, pos.y - 50, 0x3083dc);
+                    flashScore(5 ** Enemy.combo, pos.x, pos.y - 50, 0x3083dc);
                 }
                 else {
                     Enemy.hitSound.play();
@@ -440,9 +442,9 @@ class Enemy extends GameObject {
                 if (this.radius <= 0) {
                     this.state = EnemyState.INACTIVE;
                     Enemy.deathSound.play();
-                    globalThis.score += 50 * Math.pow(Enemy.combo, 2);
+                    globalThis.score += 50 * Enemy.combo ** 2;
                     const screenPos = this.sprite.getGlobalPosition();
-                    flashScore(50 * Math.pow(Enemy.combo, 2), screenPos.x, screenPos.y);
+                    flashScore(50 * Enemy.combo ** 2, screenPos.x, screenPos.y);
                 }
                 break;
             }
@@ -533,10 +535,15 @@ class Enemy extends GameObject {
     }
     static spawn(numEnemies, radius = 250, minRadius = 75) {
         for (let i = 0; i < numEnemies; i++) {
-            let r = Math.floor((Math.random() * (radius - minRadius)) + minRadius);
-            let angle = Math.random() * 360;
-            let x = r * Math.sin(angle);
-            let y = r * Math.cos(angle);
+            let x, y, attempt = 0;
+            do {
+                attempt++;
+                const r = Math.floor((Math.random() * (radius - minRadius)) + minRadius);
+                const angle = Math.random() * 360;
+                x = r * Math.sin(angle);
+                y = r * Math.cos(angle);
+            } while (Collider.circleCheck(x, y, 20, ["enemy", "player"]).length > 0
+                && attempt < 100);
             new Enemy(x, y);
         }
     }

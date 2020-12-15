@@ -313,10 +313,16 @@ class Enemy extends GameObject {
 
     static spawn(numEnemies: number, radius: number = 250, minRadius: number = 75) {
         for (let i = 0; i < numEnemies; i++) {
-            let r = Math.floor((Math.random() * (radius - minRadius)) + minRadius)
-            let angle = Math.random() * 360
-            let x = r * Math.sin(angle)
-            let y = r * Math.cos(angle)
+            let x: number, y: number, attempt = 0
+            // Pick a random spot until you find an empty one, up to 100 tries
+            do {
+                attempt++
+                const r = Math.floor((Math.random() * (radius - minRadius)) + minRadius)
+                const angle = Math.random() * 360
+                x = r * Math.sin(angle)
+                y = r * Math.cos(angle)
+            } while (Collider.circleCheck(x, y, 20, ["enemy", "player"]).length > 0
+                        && attempt < 100)
             new Enemy(x, y)
         }
     }

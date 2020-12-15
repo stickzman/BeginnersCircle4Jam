@@ -84,12 +84,14 @@ class Collider {
         return distance < col1.radius + col2.radius
     }
 
-    static circleCheck(x: number, y: number, radius: number, filter: string): Collider[] {
+    static circleCheck(x: number, y: number, radius: number, filter?: string | string[]): Collider[] {
         const results = []
         const checkCol = new Collider(null, radius, x, y)
+        if (typeof(filter) === "string") filter = [filter]
+
         for (const c of Collider.allColliders) {
             if (Collider.touching(checkCol, c)) {
-                if (!filter || c.gameObj.tag === filter) results.push(c)
+                if (!filter || filter.includes(c.gameObj.tag)) results.push(c)
             }
         }
         return results
