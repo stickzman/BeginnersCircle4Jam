@@ -929,7 +929,7 @@ class Platform extends GameObject {
         this.collider = new Collider(this, cam.height / 2 - 12);
     }
     reInitialize() {
-        Camera.stage.addChild(this.graphic);
+        globalThis.cam.stage.addChild(this.graphic);
         Collider.allColliders.push(this.collider);
     }
 }
@@ -1134,8 +1134,8 @@ class Player extends GameObject {
         Enemy.combo = 1;
     }
     reInitialize() {
-        Camera.stage.addChild(this.indicator);
-        Camera.stage.addChild(this.sprite);
+        globalThis.cam.stage.addChild(this.indicator);
+        globalThis.cam.stage.addChild(this.sprite);
         Collider.allColliders.push(this.collider);
     }
 }

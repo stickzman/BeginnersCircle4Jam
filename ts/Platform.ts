@@ -14,7 +14,7 @@ class Platform extends GameObject {
     }
 
     reInitialize() {
-        Camera.stage.addChild(this.graphic)
+        globalThis.cam.stage.addChild(this.graphic)
         Collider.allColliders.push(this.collider)
     }
 }

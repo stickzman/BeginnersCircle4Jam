@@ -248,8 +248,8 @@ class Player extends GameObject {
     }
 
     reInitialize() {
-        Camera.stage.addChild(this.indicator)
-        Camera.stage.addChild(this.sprite)
+        globalThis.cam.stage.addChild(this.indicator)
+        globalThis.cam.stage.addChild(this.sprite)
         Collider.allColliders.push(this.collider)
     }
 }
