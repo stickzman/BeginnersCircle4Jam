@@ -7,7 +7,7 @@ enum TutorialStage {
     ENDED
 }
 class Tutorial {
-    static skip = true
+    static skip = false
     static state = TutorialStage.INTRO
     static tryUp = false
     static tryDown = false
@@ -25,7 +25,7 @@ class Tutorial {
 
         switch (this.state) {
             case TutorialStage.INTRO: {
-                if (Timer.check("tutorialStart", 4000))
+                if (Timer.check("tutorialStart", 3000))
                     this.state = TutorialStage.MOVEMENT
                 break
             }

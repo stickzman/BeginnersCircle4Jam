@@ -71,6 +71,7 @@ class Player extends GameObject {
                 if (faster) {
                     if (this.state === PlayerState.DASH) {
                         Enemy.combo = 1
+                        e.combo = 1
                         // Angle enemy sprite towards player
                         e.sprite.angle = this.sprite.angle
                         globalThis.cam.shake = .5 * (this.velocity.mag/this.maxDashMag + 0.1)

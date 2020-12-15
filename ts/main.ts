@@ -125,6 +125,12 @@ function init(loader, resources) {
     platform = new Platform()
     player = new Player()
 
+    // new Enemy(50, 0)
+    // new Enemy(100, 0)
+    // new Enemy(150, 0)
+    // new Enemy(200, 0)
+    // new Enemy(250, 0)
+    
     Timer.start("tutorialStart")
     frameID = window.requestAnimationFrame(tutorialTick)
 }

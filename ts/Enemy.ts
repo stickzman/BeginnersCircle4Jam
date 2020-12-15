@@ -60,6 +60,7 @@ class Enemy extends GameObject {
 
     target: Vector
 
+    combo: number = 1
     aimSpeed: number = 0.05
     chargeSpeed: number = 10
     dashMag: number = 400
@@ -109,14 +110,21 @@ class Enemy extends GameObject {
                     globalThis.cam.shake = 0.25
                     globalThis.frameHalt = 5
                     Player.attackSound.play()
-                    Enemy.combo++
+                    if (faster) {
+                        this.combo = Enemy.combo
+                        e.combo = ++Enemy.combo
+                    } else {
+                        e.combo = Enemy.combo
+                        this.combo = ++Enemy.combo
+                    }
                     const i = (Enemy.combo > Enemy.comboSounds.length)
                                 ? Enemy.comboSounds.length - 1
                                 : Enemy.combo - 2
                     Enemy.comboSounds[i].play()
-                    globalThis.score += 5 ** Enemy.combo
+                    const points = 5 * Enemy.combo**2
+                    globalThis.score += points
                     const pos = this.sprite.getGlobalPosition()
-                    flashScore(5 ** Enemy.combo, pos.x, pos.y - 50, 0x3083dc)
+                    flashScore(points, pos.x, pos.y - 50, 0x3083dc)
                 } else {
                     Enemy.hitSound.play()
                     this.state = EnemyState.KNOCK_BACK
@@ -210,9 +218,9 @@ class Enemy extends GameObject {
                 if (this.radius <= 0) {
                     this.state = EnemyState.INACTIVE
                     Enemy.deathSound.play()
-                    globalThis.score += 50 * Enemy.combo**2
+                    globalThis.score += 50 * this.combo**2
                     const screenPos = this.sprite.getGlobalPosition()
-                    flashScore(50 * Enemy.combo**2, screenPos.x, screenPos.y)
+                    flashScore(50 * this.combo**2, screenPos.x, screenPos.y)
                 }
                 break
             }
@@ -263,6 +271,7 @@ class Enemy extends GameObject {
                 break
             }
             case EnemyState.REST: {
+                this.combo = 1
                 if (performance.now() - this.restStart > this.restTime) {
                     this.state = EnemyState.AIM
                 }
