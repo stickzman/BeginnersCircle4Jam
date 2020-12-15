@@ -20,7 +20,7 @@ class Collider {
             this.visual.endFill()
             this.visual.x = x
             this.visual.y = y
-            Camera.stage.addChild(this.visual)
+            globalThis.cam.stage.addChild(this.visual)
         }
     }
 

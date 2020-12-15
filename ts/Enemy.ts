@@ -190,6 +190,16 @@ class Enemy extends GameObject {
         return this._rot
     }
 
+    static update() {
+        for (const e of Enemy.enemies) {
+            if (e.state === EnemyState.INACTIVE) {
+                e.destroy()
+                continue
+            }
+            e.update()
+        }
+    }
+
     update() {
         switch (this.state) {
             case EnemyState.DEAD: {
@@ -230,7 +240,8 @@ class Enemy extends GameObject {
                 // Pull back bow
                 if (this.indicator.height < this.dashMag + 50) {
                     this.indicator.height += this.chargeSpeed
-                } else if (angleAligned) {
+                } else if (angleAligned &&
+                           globalThis.player.state !== PlayerState.KNOCK_BACK) {
                     // Enter dash
                     const v = Vector.fromVectors(this.pos, this.target)
                     this.velocity.set(v.normalize()).mult(this.dashSpeed)

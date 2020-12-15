@@ -7,7 +7,7 @@ enum TutorialStage {
     ENDED
 }
 class Tutorial {
-    static skip = false
+    static skip = true
     static state = TutorialStage.INTRO
     static tryUp = false
     static tryDown = false

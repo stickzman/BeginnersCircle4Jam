@@ -168,13 +168,7 @@ function tick() {
 
     Collider.update()
     player.update()
-    for (const e of Enemy.enemies) {
-        if (e.state === EnemyState.INACTIVE) {
-            e.destroy()
-            continue
-        }
-        e.update()
-    }
+    Enemy.update()
     if (Enemy.enemies.length === 0) {
         levelText.text = "Level\n" + ++level
         Enemy.spawn(level)

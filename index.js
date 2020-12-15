@@ -220,7 +220,7 @@ class Collider {
             this.visual.endFill();
             this.visual.x = x;
             this.visual.y = y;
-            Camera.stage.addChild(this.visual);
+            globalThis.cam.stage.addChild(this.visual);
         }
     }
     on(event, callback) {
@@ -422,6 +422,15 @@ class Enemy extends GameObject {
     get rotation() {
         return this._rot;
     }
+    static update() {
+        for (const e of Enemy.enemies) {
+            if (e.state === EnemyState.INACTIVE) {
+                e.destroy();
+                continue;
+            }
+            e.update();
+        }
+    }
     update() {
         switch (this.state) {
             case EnemyState.DEAD: {
@@ -462,7 +471,8 @@ class Enemy extends GameObject {
                 if (this.indicator.height < this.dashMag + 50) {
                     this.indicator.height += this.chargeSpeed;
                 }
-                else if (angleAligned) {
+                else if (angleAligned &&
+                    globalThis.player.state !== PlayerState.KNOCK_BACK) {
                     const v = Vector.fromVectors(this.pos, this.target);
                     this.velocity.set(v.normalize()).mult(this.dashSpeed);
                     this.dashEnd = Vector.add(this.pos, v.mult(this.dashMag));
@@ -669,7 +679,7 @@ class Tutorial {
         catch (e) { }
     }
 }
-Tutorial.skip = false;
+Tutorial.skip = true;
 Tutorial.state = TutorialStage.INTRO;
 Tutorial.tryUp = false;
 Tutorial.tryDown = false;
@@ -713,7 +723,7 @@ class Player extends GameObject {
         this.pos = new Vector(0, 0);
         this.velocity = new Vector(0, 0);
         this.friction = .9;
-        this.knockBackMag = 20;
+        this.knockBackMag = 15;
         this.maxDashMag = 40;
         this.maxAimTime = 500;
         this.lives = 10;
@@ -760,7 +770,9 @@ class Player extends GameObject {
                 else {
                     globalThis.cam.shake = 0.35;
                     globalThis.frameHalt = 5;
-                    this.velocity.set(Vector.mult(collisionVector, -this.knockBackMag));
+                    if (this.state !== PlayerState.KNOCK_BACK) {
+                        this.velocity.set(Vector.mult(collisionVector, -this.knockBackMag));
+                    }
                     e.velocity.set(Vector.mult(collisionVector, 1));
                     Player.hitSound.play();
                 }
@@ -1066,13 +1078,7 @@ function tick() {
     }
     Collider.update();
     player.update();
-    for (const e of Enemy.enemies) {
-        if (e.state === EnemyState.INACTIVE) {
-            e.destroy();
-            continue;
-        }
-        e.update();
-    }
+    Enemy.update();
     if (Enemy.enemies.length === 0) {
         levelText.text = "Level\n" + ++level;
         Enemy.spawn(level);
