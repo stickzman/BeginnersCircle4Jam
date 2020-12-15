@@ -579,195 +579,6 @@ class Graphic extends PIXI.Graphics {
         globalThis.cam.stage.addChild(this);
     }
 }
-var Howl;
-var WebFont;
-var tutorial = true;
-const levelUpSound = new Howl({
-    src: ['./assets/audio/levelup.wav'],
-    volume: 1
-});
-const gameOverSound = new Howl({
-    src: ['./assets/audio/gameover.wav'],
-    volume: 0.3
-});
-var cam = new Camera();
-var player;
-let platform;
-let level = 0;
-var score = 0;
-let highScore = 0;
-let scoreBoard;
-let highScoreBoard;
-let gameOverScreen;
-let levelText;
-let livesCounter;
-let floatScore;
-let tutorialText;
-let tutorialSubtext;
-var flashScore = function (score, x, y, color = 0xFFFFFF) {
-    floatScore.text = (score > 0) ? "+" + score.toString() : score.toString();
-    x = Math.min(cam.width - floatScore.width - 10, x);
-    x = Math.max(10, x);
-    y = Math.min(cam.height - floatScore.height - 10, y);
-    y = Math.max(10, y);
-    floatScore.x = x;
-    floatScore.y = y;
-    floatScore.alpha = 1;
-    floatScore.style.fill = 0x3083dc;
-};
-WebFont.load({
-    google: {
-        families: ['Press Start 2P']
-    },
-    active: e => {
-        PIXI.Loader.shared
-            .add("sheet", "./spritesheets/sheet.json")
-            .load(init);
-        scoreBoard = cam.addText("Score:\n0", {
-            "fontFamily": "Press Start 2P",
-            "fill": 0xFFFFFF,
-            "fontSize": "20px"
-        }, 25, 25);
-        highScoreBoard = cam.addText("High\nScore:\n" + highScore, {
-            "fontFamily": "Press Start 2P",
-            "fill": 0xFFFFFF,
-            "fontSize": "20px"
-        }, 25, 0);
-        highScoreBoard.y = cam.height - highScoreBoard.height - 25;
-        livesCounter = cam.addText("Lives:\n0", {
-            "fontFamily": "Press Start 2P",
-            "fill": 0xFFFFFF,
-            "align": "center",
-            "fontSize": "20px"
-        }, 0, 0);
-        livesCounter.y = cam.height - livesCounter.height - 25;
-        livesCounter.x = cam.width - livesCounter.width - 25;
-        levelText = cam.addText("Level\n0", {
-            "fontFamily": "Press Start 2P",
-            "fill": 0xFFFFFF,
-            "align": "center",
-            "fontSize": "20px"
-        }, 0, 25);
-        levelText.x = cam.width - levelText.width - 25;
-        floatScore = cam.addText("", {
-            "fontFamily": "Press Start 2P",
-            "fill": 0xFFFFFF,
-            "alpha": 0,
-            "fontSize": "20px"
-        });
-        gameOverScreen = cam.addText("Game Over!\n\nPress\nSpacebar\nto play again", {
-            "fontFamily": "Press Start 2P",
-            "fill": 0x000000,
-            "fontSize": "32px",
-            "align": "center"
-        });
-        gameOverScreen.x = cam.width / 2 - gameOverScreen.width / 2;
-        gameOverScreen.y = cam.height / 2 - gameOverScreen.height / 2;
-        gameOverScreen.alpha = 0;
-        tutorialText = cam.addText("Welcome to\nLast Man Standing!", {
-            "fontFamily": "Press Start 2P",
-            "fill": 0x000000,
-            "fontSize": "24px",
-            "align": "center"
-        });
-        tutorialText.x = cam.width / 2 - tutorialText.width / 2;
-        tutorialText.y = cam.height / 2 - tutorialText.height - 50;
-        tutStartTime = performance.now();
-        tutorialSubtext = cam.addText("Be careful not to\nthrow yourself off the platform!", {
-            "fontFamily": "Press Start 2P",
-            "fill": 0x000000,
-            "fontSize": "14px",
-            "align": "center"
-        });
-        tutorialSubtext.x = cam.width / 2 - tutorialSubtext.width / 2;
-        tutorialSubtext.y = cam.height / 2 + tutorialSubtext.height + 100;
-        tutorialSubtext.alpha = 0;
-    }
-});
-function init(loader, resources) {
-    const sheet = resources["sheet"].spritesheet;
-    globalThis.spritesheet = sheet;
-    platform = new Platform();
-    player = new Player();
-    window.requestAnimationFrame(tick);
-}
-var frameID;
-var frameHalt = 0;
-let gameOver = false;
-function tick() {
-    if (frameHalt > 0) {
-        --frameHalt;
-        frameID = window.requestAnimationFrame(tick);
-        cam.render();
-        return;
-    }
-    if (tutorial)
-        runTutorial();
-    score = (score < 0) ? 0 : score;
-    scoreBoard.text = "Score:\n" + score;
-    livesCounter.text = "Lives:\n" + player.lives;
-    if (floatScore.alpha > 0) {
-        floatScore.alpha -= 0.01;
-    }
-    if (gameOver) {
-        if (globalThis.SPACE)
-            reset();
-        cam.render();
-        frameID = window.requestAnimationFrame(tick);
-        return;
-    }
-    Collider.update();
-    player.update();
-    for (const e of Enemy.enemies) {
-        if (e.state === EnemyState.INACTIVE) {
-            e.destroy();
-            continue;
-        }
-        e.update();
-    }
-    if (!tutorial && Enemy.enemies.length === 0) {
-        levelText.text = "Level\n" + ++level;
-        Enemy.spawn(level);
-        levelUpSound.play();
-        setTimeout(() => {
-            levelText.alpha = 0;
-        }, 500);
-        setTimeout(() => {
-            levelText.alpha = 1;
-        }, 1000);
-        setTimeout(() => {
-            levelText.alpha = 0;
-        }, 1500);
-        setTimeout(() => {
-            levelText.alpha = 1;
-        }, 2000);
-    }
-    cam.render();
-    if (!tutorial && player.lives <= 0) {
-        Enemy.clear();
-        gameOver = true;
-        gameOverScreen.alpha = 1;
-        gameOverSound.play();
-        if (score > highScore) {
-            highScore = score;
-            highScoreBoard.text = "High\nScore:\n" + highScore;
-            setTimeout(() => {
-                highScoreBoard.alpha = 0;
-            }, 500);
-            setTimeout(() => {
-                highScoreBoard.alpha = 1;
-            }, 1000);
-            setTimeout(() => {
-                highScoreBoard.alpha = 0;
-            }, 1500);
-            setTimeout(() => {
-                highScoreBoard.alpha = 1;
-            }, 2000);
-        }
-    }
-    frameID = window.requestAnimationFrame(tick);
-}
-let tutStartTime;
 var TutorialStage;
 (function (TutorialStage) {
     TutorialStage[TutorialStage["INTRO"] = 0] = "INTRO";
@@ -775,164 +586,91 @@ var TutorialStage;
     TutorialStage[TutorialStage["AIMING"] = 2] = "AIMING";
     TutorialStage[TutorialStage["FULLCHARGE"] = 3] = "FULLCHARGE";
     TutorialStage[TutorialStage["CONCLUSION"] = 4] = "CONCLUSION";
+    TutorialStage[TutorialStage["ENDED"] = 5] = "ENDED";
 })(TutorialStage || (TutorialStage = {}));
-let state = TutorialStage.INTRO;
-let tryUp = false;
-let tryDown = false;
-let tryLeft = false;
-let tryRight = false;
-let chargeStart = false;
-let chargeFull = false;
-function runTutorial() {
-    switch (state) {
-        case TutorialStage.INTRO: {
-            if (performance.now() - state > 4000)
-                state = TutorialStage.MOVEMENT;
-            break;
+class Tutorial {
+    static update() {
+        if (Tutorial.skip) {
+            tutorialText.destroy();
+            tutorialSubtext.destroy();
+            this.state = TutorialStage.ENDED;
         }
-        case TutorialStage.MOVEMENT: {
-            updateTutText("Use W,A,S,D to move.");
-            if (globalThis.UP)
-                tryUp = true;
-            if (globalThis.DOWN)
-                tryDown = true;
-            if (globalThis.LEFT)
-                tryLeft = true;
-            if (globalThis.RIGHT)
-                tryRight = true;
-            if (tryUp && tryDown && tryLeft && tryRight)
-                state = TutorialStage.AIMING;
-            break;
-        }
-        case TutorialStage.AIMING: {
-            tutorialText.style.fontSize = "20px";
-            updateTutText("Aim with the mouse cursor.\nHold Left Mouse Button\nto charge your body slam!");
-            if (globalThis.LEFT_MOUSE)
-                chargeStart = true;
-            if (chargeStart && !globalThis.LEFT_MOUSE)
-                state = TutorialStage.FULLCHARGE;
-            break;
-        }
-        case TutorialStage.FULLCHARGE: {
-            updateTutText("Hold down the\nLeft Mouse button\nto fully charge your slam!");
-            updateTutSubText("Try to chain hits together\nfor a multiplier!");
-            if (player.indicator.height === 100)
-                chargeFull = true;
-            if (chargeFull && !globalThis.LEFT_MOUSE)
-                state = TutorialStage.CONCLUSION;
-            break;
-        }
-        case TutorialStage.CONCLUSION: {
-            updateTutText("Looking good!\nMake sure you're the last\none on the platform\nto win the round!");
-            updateTutSubText("Press spacebar to start the game!");
-            if (globalThis.SPACE) {
-                tutorialText.destroy();
-                tutorialSubtext.destroy();
-                tutorial = false;
-                reset();
+        switch (this.state) {
+            case TutorialStage.INTRO: {
+                if (performance.now() - this.state > 4000)
+                    this.state = TutorialStage.MOVEMENT;
+                break;
             }
-            break;
+            case TutorialStage.MOVEMENT: {
+                this.updateTutText("Use W,A,S,D to move.");
+                if (globalThis.UP)
+                    this.tryUp = true;
+                if (globalThis.DOWN)
+                    this.tryDown = true;
+                if (globalThis.LEFT)
+                    this.tryLeft = true;
+                if (globalThis.RIGHT)
+                    this.tryRight = true;
+                if (this.tryUp && this.tryDown && this.tryLeft && this.tryRight)
+                    this.state = TutorialStage.AIMING;
+                break;
+            }
+            case TutorialStage.AIMING: {
+                tutorialText.style.fontSize = "20px";
+                this.updateTutText("Aim with the mouse cursor.\nHold Left Mouse Button\nto charge your body slam!");
+                if (globalThis.LEFT_MOUSE)
+                    this.chargeStart = true;
+                if (this.chargeStart && !globalThis.LEFT_MOUSE)
+                    this.state = TutorialStage.FULLCHARGE;
+                break;
+            }
+            case TutorialStage.FULLCHARGE: {
+                this.updateTutText("Hold down the\nLeft Mouse button\nto fully charge your slam!");
+                this.updateTutSubText("Try to chain hits together\nfor a multiplier!");
+                if (player.indicator.height === 100)
+                    this.chargeFull = true;
+                if (this.chargeFull && !globalThis.LEFT_MOUSE)
+                    this.state = TutorialStage.CONCLUSION;
+                break;
+            }
+            case TutorialStage.CONCLUSION: {
+                this.updateTutText("Looking good!\nMake sure you're the last\none on the platform\nto win the round!");
+                this.updateTutSubText("Press spacebar to start the game!");
+                if (globalThis.SPACE) {
+                    tutorialText.destroy();
+                    tutorialSubtext.destroy();
+                    this.state = TutorialStage.ENDED;
+                }
+                break;
+            }
+        }
+        if (player.state === PlayerState.DEAD) {
+            this.updateTutSubText("Be careful!");
         }
     }
-    if (player.state === PlayerState.DEAD) {
-        updateTutSubText("Be careful!");
+    static get running() {
+        return !Tutorial.skip && Tutorial.state !== TutorialStage.ENDED;
+    }
+    static updateTutText(t) {
+        tutorialText.text = t;
+        tutorialText.x = cam.width / 2 - tutorialText.width / 2;
+        tutorialText.y = cam.height / 2 - tutorialText.height - 40;
+    }
+    static updateTutSubText(t) {
+        tutorialSubtext.text = t;
+        tutorialSubtext.x = cam.width / 2 - tutorialSubtext.width / 2;
+        tutorialSubtext.y = cam.height / 2 + tutorialSubtext.height + 50;
+        tutorialSubtext.alpha = 1;
     }
 }
-function updateTutText(t) {
-    tutorialText.text = t;
-    tutorialText.x = cam.width / 2 - tutorialText.width / 2;
-    tutorialText.y = cam.height / 2 - tutorialText.height - 40;
-}
-function updateTutSubText(t) {
-    tutorialSubtext.text = t;
-    tutorialSubtext.x = cam.width / 2 - tutorialSubtext.width / 2;
-    tutorialSubtext.y = cam.height / 2 + tutorialSubtext.height + 50;
-    tutorialSubtext.alpha = 1;
-}
-function reset() {
-    Enemy.clear();
-    player.lives = 10;
-    player.respawn();
-    level = 0;
-    score = 0;
-    gameOver = false;
-    gameOverScreen.alpha = 0;
-    levelUpSound.play();
-}
-var UP, DOWN, LEFT, RIGHT, LEFT_MOUSE, RIGHT_MOUSE;
-var mouseX = 0;
-var mouseY = 0;
-window.addEventListener("keydown", e => {
-    switch (e.key.toLowerCase()) {
-        case "w":
-            globalThis.UP = true;
-            break;
-        case "a":
-            globalThis.LEFT = true;
-            break;
-        case "s":
-            globalThis.DOWN = true;
-            break;
-        case "d":
-            globalThis.RIGHT = true;
-            break;
-        case " ":
-            globalThis.SPACE = true;
-            break;
-    }
-});
-window.addEventListener("keyup", e => {
-    switch (e.key.toLowerCase()) {
-        case "w":
-            globalThis.UP = false;
-            break;
-        case "a":
-            globalThis.LEFT = false;
-            break;
-        case "s":
-            globalThis.DOWN = false;
-            break;
-        case "d":
-            globalThis.RIGHT = false;
-            break;
-        case " ":
-            globalThis.SPACE = false;
-            break;
-    }
-});
-window.addEventListener("mousemove", e => {
-    globalThis.mouseX = e.clientX;
-    globalThis.mouseY = e.clientY;
-});
-window.addEventListener("mousedown", e => {
-    if (e.which === 1)
-        globalThis.LEFT_MOUSE = true;
-    if (e.which === 3)
-        globalThis.RIGHT_MOUSE = true;
-});
-window.addEventListener("mouseup", e => {
-    if (e.which === 1)
-        globalThis.LEFT_MOUSE = false;
-    if (e.which === 3)
-        globalThis.RIGHT_MOUSE = false;
-});
-document.querySelector("canvas").addEventListener("contextmenu", e => {
-    e.preventDefault();
-});
-class Platform extends GameObject {
-    constructor() {
-        super("platform");
-        this.graphic = new Graphic();
-        this.graphic.beginFill(0xFFFFFF);
-        this.graphic.drawCircle(0, 0, cam.height / 2 - 10);
-        this.graphic.endFill();
-        this.collider = new Collider(this, cam.height / 2 - 12);
-    }
-    reInitialize() {
-        globalThis.cam.stage.addChild(this.graphic);
-        Collider.allColliders.push(this.collider);
-    }
-}
+Tutorial.skip = false;
+Tutorial.state = TutorialStage.INTRO;
+Tutorial.tryUp = false;
+Tutorial.tryDown = false;
+Tutorial.tryLeft = false;
+Tutorial.tryRight = false;
+Tutorial.chargeStart = false;
+Tutorial.chargeFull = false;
 var PlayerState;
 (function (PlayerState) {
     PlayerState[PlayerState["DEAD"] = 0] = "DEAD";
@@ -1047,7 +785,7 @@ class Player extends GameObject {
                 this.radius -= 0.5;
                 this.sprite.angle += 6;
                 if (this.radius <= 0) {
-                    if (tutorial || --this.lives > 0)
+                    if (Tutorial.running || --this.lives > 0)
                         this.respawn();
                 }
                 break;
@@ -1154,4 +892,285 @@ Player.smallHitSound = new Howl({
     src: ['./assets/audio/smallhit.wav'],
     volume: 0.25
 });
+var Howl;
+var WebFont;
+const levelUpSound = new Howl({
+    src: ['./assets/audio/levelup.wav'],
+    volume: 1
+});
+const gameOverSound = new Howl({
+    src: ['./assets/audio/gameover.wav'],
+    volume: 0.3
+});
+var cam = new Camera();
+var player;
+let platform;
+let level = 0;
+var score = 0;
+let highScore = 0;
+let scoreBoard;
+let highScoreBoard;
+let gameOverScreen;
+let levelText;
+let livesCounter;
+let floatScore;
+let tutorialText;
+let tutorialSubtext;
+var flashScore = function (score, x, y, color = 0x3083dc) {
+    floatScore.text = (score > 0) ? "+" + score.toString() : score.toString();
+    x = Math.min(cam.width - floatScore.width - 10, x);
+    x = Math.max(10, x);
+    y = Math.min(cam.height - floatScore.height - 10, y);
+    y = Math.max(10, y);
+    floatScore.x = x;
+    floatScore.y = y;
+    floatScore.alpha = 1;
+    floatScore.style.fill = color;
+};
+WebFont.load({
+    google: {
+        families: ['Press Start 2P']
+    },
+    active: e => {
+        scoreBoard = cam.addText("Score:\n0", {
+            "fontFamily": "Press Start 2P",
+            "fill": 0xFFFFFF,
+            "fontSize": "20px"
+        }, 25, 25);
+        highScoreBoard = cam.addText("High\nScore:\n" + highScore, {
+            "fontFamily": "Press Start 2P",
+            "fill": 0xFFFFFF,
+            "fontSize": "20px"
+        }, 25, 0);
+        highScoreBoard.y = cam.height - highScoreBoard.height - 25;
+        livesCounter = cam.addText("Lives:\n0", {
+            "fontFamily": "Press Start 2P",
+            "fill": 0xFFFFFF,
+            "align": "center",
+            "fontSize": "20px"
+        }, 0, 0);
+        livesCounter.y = cam.height - livesCounter.height - 25;
+        livesCounter.x = cam.width - livesCounter.width - 25;
+        levelText = cam.addText("Level\n0", {
+            "fontFamily": "Press Start 2P",
+            "fill": 0xFFFFFF,
+            "align": "center",
+            "fontSize": "20px"
+        }, 0, 25);
+        levelText.x = cam.width - levelText.width - 25;
+        floatScore = cam.addText("", {
+            "fontFamily": "Press Start 2P",
+            "fill": 0xFFFFFF,
+            "alpha": 0,
+            "fontSize": "20px"
+        });
+        gameOverScreen = cam.addText("Game Over!\n\nPress\nSpacebar\nto play again", {
+            "fontFamily": "Press Start 2P",
+            "fill": 0x000000,
+            "fontSize": "32px",
+            "align": "center"
+        });
+        gameOverScreen.x = cam.width / 2 - gameOverScreen.width / 2;
+        gameOverScreen.y = cam.height / 2 - gameOverScreen.height / 2;
+        gameOverScreen.alpha = 0;
+        tutorialText = cam.addText("Welcome to\nLast Man Standing!", {
+            "fontFamily": "Press Start 2P",
+            "fill": 0x000000,
+            "fontSize": "24px",
+            "align": "center"
+        });
+        tutorialText.x = cam.width / 2 - tutorialText.width / 2;
+        tutorialText.y = cam.height / 2 - tutorialText.height - 50;
+        tutorialSubtext = cam.addText("Be careful not to\nthrow yourself off the platform!", {
+            "fontFamily": "Press Start 2P",
+            "fill": 0x000000,
+            "fontSize": "14px",
+            "align": "center"
+        });
+        tutorialSubtext.x = cam.width / 2 - tutorialSubtext.width / 2;
+        tutorialSubtext.y = cam.height / 2 + tutorialSubtext.height + 100;
+        tutorialSubtext.alpha = 0;
+        PIXI.Loader.shared
+            .add("sheet", "./spritesheets/sheet.json")
+            .load(init);
+    }
+});
+function init(loader, resources) {
+    const sheet = resources["sheet"].spritesheet;
+    globalThis.spritesheet = sheet;
+    platform = new Platform();
+    player = new Player();
+    Tutorial.tutStartTime = performance.now();
+    window.requestAnimationFrame(tutorialTick);
+}
+function tutorialTick() {
+    Tutorial.update();
+    Collider.update();
+    player.update();
+    cam.render();
+    if (Tutorial.running) {
+        window.requestAnimationFrame(tutorialTick);
+    }
+    else {
+        window.requestAnimationFrame(tick);
+    }
+}
+var frameID;
+var frameHalt = 0;
+let gameOver = false;
+function tick() {
+    if (frameHalt > 0) {
+        --frameHalt;
+        frameID = window.requestAnimationFrame(tick);
+        cam.render();
+        return;
+    }
+    score = (score < 0) ? 0 : score;
+    scoreBoard.text = "Score:\n" + score;
+    livesCounter.text = "Lives:\n" + player.lives;
+    if (floatScore.alpha > 0) {
+        floatScore.alpha -= 0.01;
+    }
+    if (gameOver) {
+        if (globalThis.SPACE)
+            reset();
+        cam.render();
+        frameID = window.requestAnimationFrame(tick);
+        return;
+    }
+    Collider.update();
+    player.update();
+    for (const e of Enemy.enemies) {
+        if (e.state === EnemyState.INACTIVE) {
+            e.destroy();
+            continue;
+        }
+        e.update();
+    }
+    if (Enemy.enemies.length === 0) {
+        levelText.text = "Level\n" + ++level;
+        Enemy.spawn(level);
+        levelUpSound.play();
+        setTimeout(() => {
+            levelText.alpha = 0;
+        }, 500);
+        setTimeout(() => {
+            levelText.alpha = 1;
+        }, 1000);
+        setTimeout(() => {
+            levelText.alpha = 0;
+        }, 1500);
+        setTimeout(() => {
+            levelText.alpha = 1;
+        }, 2000);
+    }
+    cam.render();
+    if (player.lives <= 0) {
+        Enemy.clear();
+        gameOver = true;
+        gameOverScreen.alpha = 1;
+        gameOverSound.play();
+        if (score > highScore) {
+            highScore = score;
+            highScoreBoard.text = "High\nScore:\n" + highScore;
+            setTimeout(() => {
+                highScoreBoard.alpha = 0;
+            }, 500);
+            setTimeout(() => {
+                highScoreBoard.alpha = 1;
+            }, 1000);
+            setTimeout(() => {
+                highScoreBoard.alpha = 0;
+            }, 1500);
+            setTimeout(() => {
+                highScoreBoard.alpha = 1;
+            }, 2000);
+        }
+    }
+    frameID = window.requestAnimationFrame(tick);
+}
+function reset() {
+    Enemy.clear();
+    player.lives = 10;
+    player.respawn();
+    level = 0;
+    score = 0;
+    gameOver = false;
+    gameOverScreen.alpha = 0;
+    levelUpSound.play();
+}
+var UP, DOWN, LEFT, RIGHT, LEFT_MOUSE, RIGHT_MOUSE;
+var mouseX = 0;
+var mouseY = 0;
+window.addEventListener("keydown", e => {
+    switch (e.key.toLowerCase()) {
+        case "w":
+            globalThis.UP = true;
+            break;
+        case "a":
+            globalThis.LEFT = true;
+            break;
+        case "s":
+            globalThis.DOWN = true;
+            break;
+        case "d":
+            globalThis.RIGHT = true;
+            break;
+        case " ":
+            globalThis.SPACE = true;
+            break;
+    }
+});
+window.addEventListener("keyup", e => {
+    switch (e.key.toLowerCase()) {
+        case "w":
+            globalThis.UP = false;
+            break;
+        case "a":
+            globalThis.LEFT = false;
+            break;
+        case "s":
+            globalThis.DOWN = false;
+            break;
+        case "d":
+            globalThis.RIGHT = false;
+            break;
+        case " ":
+            globalThis.SPACE = false;
+            break;
+    }
+});
+window.addEventListener("mousemove", e => {
+    globalThis.mouseX = e.clientX;
+    globalThis.mouseY = e.clientY;
+});
+window.addEventListener("mousedown", e => {
+    if (e.which === 1)
+        globalThis.LEFT_MOUSE = true;
+    if (e.which === 3)
+        globalThis.RIGHT_MOUSE = true;
+});
+window.addEventListener("mouseup", e => {
+    if (e.which === 1)
+        globalThis.LEFT_MOUSE = false;
+    if (e.which === 3)
+        globalThis.RIGHT_MOUSE = false;
+});
+document.querySelector("canvas").addEventListener("contextmenu", e => {
+    e.preventDefault();
+});
+class Platform extends GameObject {
+    constructor() {
+        super("platform");
+        this.graphic = new Graphic();
+        this.graphic.beginFill(0xFFFFFF);
+        this.graphic.drawCircle(0, 0, cam.height / 2 - 10);
+        this.graphic.endFill();
+        this.collider = new Collider(this, cam.height / 2 - 12);
+    }
+    reInitialize() {
+        globalThis.cam.stage.addChild(this.graphic);
+        Collider.allColliders.push(this.collider);
+    }
+}
 //# sourceMappingURL=index.js.map

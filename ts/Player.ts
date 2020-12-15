@@ -150,7 +150,7 @@ class Player extends GameObject {
                 this.radius -= 0.5
                 this.sprite.angle += 6
                 if (this.radius <= 0) {
-                    if (tutorial || --this.lives > 0) this.respawn()
+                    if (Tutorial.running || --this.lives > 0) this.respawn()
                 }
                 break
             }

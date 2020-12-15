@@ -1,9 +1,11 @@
 /// <reference path="Camera.ts" />
 /// <reference path="Collider.ts" />
+/// <reference path="Tutorial.ts" />
+/// <reference path="Enemy.ts" />
+/// <reference path="Player.ts" />
 
 var Howl: any
 var WebFont: any
-var tutorial = true
 
 const levelUpSound = new Howl({
     src: ['./assets/audio/levelup.wav'],
@@ -30,7 +32,7 @@ let floatScore: PIXI.Text
 let tutorialText: PIXI.Text
 let tutorialSubtext: PIXI.Text
 
-var flashScore = function(score: number, x: number, y: number, color: number = 0xFFFFFF) {
+var flashScore = function(score: number, x: number, y: number, color: number = 0x3083dc) {
     floatScore.text = (score > 0) ? "+" + score.toString() : score.toString()
     x = Math.min(cam.width - floatScore.width - 10, x)
     x = Math.max(10, x)
@@ -39,7 +41,7 @@ var flashScore = function(score: number, x: number, y: number, color: number = 0
     floatScore.x = x
     floatScore.y = y
     floatScore.alpha = 1
-    floatScore.style.fill = 0x3083dc
+    floatScore.style.fill = color
 }
 
 WebFont.load({
@@ -47,10 +49,6 @@ WebFont.load({
         families: ['Press Start 2P']
     },
     active: e => {
-        PIXI.Loader.shared
-            .add("sheet", "./spritesheets/sheet.json")
-            .load(init)
-
         scoreBoard = cam.addText("Score:\n0", {
             "fontFamily": "Press Start 2P",
             "fill": 0xFFFFFF,
@@ -101,7 +99,6 @@ WebFont.load({
         })
         tutorialText.x = cam.width/2 - tutorialText.width/2
         tutorialText.y = cam.height/2 - tutorialText.height - 50
-        tutStartTime = performance.now()
         tutorialSubtext = cam.addText("Be careful not to\nthrow yourself off the platform!", {
             "fontFamily": "Press Start 2P",
             "fill": 0x000000,
@@ -111,6 +108,11 @@ WebFont.load({
         tutorialSubtext.x = cam.width/2 - tutorialSubtext.width/2
         tutorialSubtext.y = cam.height/2 + tutorialSubtext.height + 100
         tutorialSubtext.alpha = 0
+
+
+        PIXI.Loader.shared
+            .add("sheet", "./spritesheets/sheet.json")
+            .load(init)
     }
 })
 
@@ -121,14 +123,21 @@ function init(loader, resources) {
     platform = new Platform()
     player = new Player()
 
-    // new Enemy(50, 0)
-    // new Enemy(100, 0)
-    // new Enemy(150, 0)
-    // new Enemy(200, 0)
-    // new Enemy(250, 0)
-    // new Enemy(300, 0)
+    Tutorial.tutStartTime = performance.now()
+    window.requestAnimationFrame(tutorialTick)
+}
 
-    window.requestAnimationFrame(tick)
+function tutorialTick() {
+    Tutorial.update()
+    Collider.update()
+    player.update()
+    cam.render()
+
+    if (Tutorial.running) {
+        window.requestAnimationFrame(tutorialTick)
+    } else {
+        window.requestAnimationFrame(tick)
+    }
 }
 
 var frameID: number
@@ -141,8 +150,6 @@ function tick() {
         cam.render()
         return
     }
-
-    if (tutorial) runTutorial()
 
     score = (score < 0) ? 0 : score
     scoreBoard.text = "Score:\n" + score
@@ -167,7 +174,7 @@ function tick() {
         }
         e.update()
     }
-    if (!tutorial && Enemy.enemies.length === 0) {
+    if (Enemy.enemies.length === 0) {
         levelText.text = "Level\n" + ++level
         Enemy.spawn(level)
         levelUpSound.play()
@@ -188,7 +195,7 @@ function tick() {
 
     cam.render()
 
-    if (!tutorial && player.lives <= 0) {
+    if (player.lives <= 0) {
         Enemy.clear()
         gameOver = true
         gameOverScreen.alpha = 1
@@ -212,83 +219,6 @@ function tick() {
     }
 
     frameID = window.requestAnimationFrame(tick)
-}
-
-let tutStartTime: number
-enum TutorialStage {
-    INTRO,
-    MOVEMENT,
-    AIMING,
-    FULLCHARGE,
-    CONCLUSION
-}
-let state = TutorialStage.INTRO
-let tryUp = false
-let tryDown = false
-let tryLeft = false
-let tryRight = false
-let chargeStart = false
-let chargeFull = false
-function runTutorial() {
-    switch (state) {
-        case TutorialStage.INTRO: {
-            if (performance.now() - state > 4000)
-                state = TutorialStage.MOVEMENT
-            break
-        }
-        case TutorialStage.MOVEMENT: {
-            updateTutText("Use W,A,S,D to move.")
-            if (globalThis.UP) tryUp = true
-            if (globalThis.DOWN) tryDown = true
-            if (globalThis.LEFT) tryLeft = true
-            if (globalThis.RIGHT) tryRight = true
-            if (tryUp && tryDown && tryLeft && tryRight)
-                state = TutorialStage.AIMING
-            break
-        }
-        case TutorialStage.AIMING: {
-            tutorialText.style.fontSize = "20px"
-            updateTutText("Aim with the mouse cursor.\nHold Left Mouse Button\nto charge your body slam!")
-            if (globalThis.LEFT_MOUSE) chargeStart = true
-            if (chargeStart && !globalThis.LEFT_MOUSE)
-                state = TutorialStage.FULLCHARGE
-            break
-        }
-        case TutorialStage.FULLCHARGE: {
-            updateTutText("Hold down the\nLeft Mouse button\nto fully charge your slam!")
-            updateTutSubText("Try to chain hits together\nfor a multiplier!")
-            if (player.indicator.height === 100) chargeFull = true
-            if (chargeFull && !globalThis.LEFT_MOUSE)
-                state = TutorialStage.CONCLUSION
-            break
-        }
-        case TutorialStage.CONCLUSION: {
-            updateTutText("Looking good!\nMake sure you're the last\none on the platform\nto win the round!")
-            updateTutSubText("Press spacebar to start the game!")
-            if (globalThis.SPACE) {
-                tutorialText.destroy()
-                tutorialSubtext.destroy()
-                tutorial = false
-                reset()
-            }
-            break
-        }
-    }
-    if (player.state === PlayerState.DEAD) {
-        updateTutSubText("Be careful!")
-    }
-}
-
-function updateTutText(t: string) {
-    tutorialText.text = t
-    tutorialText.x = cam.width/2 - tutorialText.width/2
-    tutorialText.y = cam.height/2 - tutorialText.height - 40
-}
-function updateTutSubText(t: string) {
-    tutorialSubtext.text = t
-    tutorialSubtext.x = cam.width/2 - tutorialSubtext.width/2
-    tutorialSubtext.y = cam.height/2 + tutorialSubtext.height + 50
-    tutorialSubtext.alpha = 1
 }
 
 function reset() {
