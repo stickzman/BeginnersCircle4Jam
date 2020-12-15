@@ -14,7 +14,7 @@ const gameOverSound = new Howl({
     volume: 0.3
 })
 
-let cam = new Camera()
+var cam = new Camera()
 var player: Player
 let platform: Platform
 let level = 0

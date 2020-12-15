@@ -106,7 +106,7 @@ class Enemy extends GameObject {
                     ) {
                     this.state = EnemyState.DASH_KNOCK_BACK
                     e.state = EnemyState.DASH_KNOCK_BACK
-                    Camera.shake = 0.25
+                    globalThis.cam.shake = 0.25
                     globalThis.frameHalt = 5
                     Player.attackSound.play()
                     Enemy.combo++

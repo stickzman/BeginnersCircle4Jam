@@ -1,6 +1,6 @@
 class Graphic extends PIXI.Graphics {
     constructor() {
         super()
-        Camera.stage.addChild(this)
+        globalThis.cam.stage.addChild(this)
     }
 }

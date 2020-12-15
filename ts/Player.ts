@@ -73,7 +73,7 @@ class Player extends GameObject {
                         Enemy.combo = 1
                         // Squash enemy sprite, angle towards player
                         e.sprite.angle = this.sprite.angle
-                        Camera.shake = .5 * (this.velocity.mag/this.maxDashMag + 0.1)
+                        globalThis.cam.shake = .5 * (this.velocity.mag/this.maxDashMag + 0.1)
                         globalThis.frameHalt = 5
                         // Enemy rebound velocity
                         e.velocity.set(Vector.mult(collisionVector, this.velocity.mag))
@@ -87,7 +87,7 @@ class Player extends GameObject {
                     this.velocity.set(Vector.mult(collisionVector, -1))
 
                 } else {
-                    Camera.shake = 0.35
+                    globalThis.cam.shake = 0.35
                     globalThis.frameHalt = 5
                     this.velocity.set(Vector.mult(collisionVector, -this.knockBackMag))
                     e.velocity.set(Vector.mult(collisionVector, 1))
@@ -131,7 +131,7 @@ class Player extends GameObject {
     }
 
     get screenPos(): PIXI.Point {
-        return this.sprite.getGlobalPosition()
+        return globalThis.cam.getScreenPos(this.sprite)
     }
 
     lookAt(x: number, y: number) {

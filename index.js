@@ -51,7 +51,7 @@ class Sprite extends PIXI.Sprite {
             this.height = height;
         }
         this.pivot.set(this.width / 2, this.height / 2);
-        Camera.stage.addChild(this);
+        globalThis.cam.stage.addChild(this);
     }
 }
 class Vector {
@@ -121,6 +121,7 @@ class Vector {
 PIXI.settings.SORTABLE_CHILDREN = true;
 class Camera {
     constructor(selector = "body", x = 0, y = 0) {
+        this.shake = 0;
         this.maxShakeOffset = 20;
         this.shakeDecrease = 0.02;
         this.pos = new Vector(0, 0);
@@ -129,9 +130,9 @@ class Camera {
         document.querySelector(selector).appendChild(this.renderer.view);
         this.width = this.renderer.width;
         this.height = this.renderer.height;
-        Camera.stage = new PIXI.Container();
+        this.stage = new PIXI.Container();
         this.rotationLayer = new PIXI.Container();
-        this.rotationLayer.addChild(Camera.stage);
+        this.rotationLayer.addChild(this.stage);
         this.rotationLayer.pivot.set(this.renderer.width / 2, this.renderer.height / 2);
         this.rotationLayer.x = this.renderer.width / 2;
         this.rotationLayer.y = this.renderer.height / 2;
@@ -142,14 +143,14 @@ class Camera {
     }
     set x(x) {
         this.pos.x = x;
-        Camera.stage.x = this.width / 2 - x;
+        this.stage.x = this.width / 2 - x;
     }
     get x() {
         return this.pos.x;
     }
     set y(y) {
         this.pos.y = y;
-        Camera.stage.y = this.height / 2 - y;
+        this.stage.y = this.height / 2 - y;
     }
     get y() {
         return this.pos.y;
@@ -159,6 +160,24 @@ class Camera {
     }
     get angle() {
         return this.rotationLayer.angle;
+    }
+    resize(width, height) {
+        const oldWidth = this.width;
+        const oldHeight = this.height;
+        if (width === undefined || height === undefined) {
+            const view = this.renderer.view.getBoundingClientRect();
+            width = view.width;
+            height = view.height;
+        }
+        this.renderer.resize(width, height);
+        this.UILayer.scale.set(width / oldWidth, height / oldHeight);
+    }
+    getScreenPos(sprite) {
+        const p = sprite.getGlobalPosition();
+        const c = this.renderer.view.getBoundingClientRect();
+        p.x += c.left;
+        p.y += c.top;
+        return p;
     }
     target(container) {
         this.x = container.x;
@@ -173,17 +192,16 @@ class Camera {
         return t;
     }
     render() {
-        if (Camera.shake > 0) {
-            const offsetX = this.maxShakeOffset * Math.pow(Camera.shake, 2) * (Math.random() * 2 - 1);
-            const offsetY = this.maxShakeOffset * Math.pow(Camera.shake, 2) * (Math.random() * 2 - 1);
-            Camera.stage.x = this.x + this.width / 2 - offsetX;
-            Camera.stage.y = this.y + this.height / 2 - offsetY;
-            Camera.shake -= this.shakeDecrease;
+        if (this.shake > 0) {
+            const offsetX = this.maxShakeOffset * Math.pow(this.shake, 2) * (Math.random() * 2 - 1);
+            const offsetY = this.maxShakeOffset * Math.pow(this.shake, 2) * (Math.random() * 2 - 1);
+            this.stage.x = this.x + this.width / 2 - offsetX;
+            this.stage.y = this.y + this.height / 2 - offsetY;
+            this.shake -= this.shakeDecrease;
         }
         this.renderer.render(this.UILayer);
     }
 }
-Camera.shake = 0;
 class Collider {
     constructor(gameObj, radius, x = 0, y = 0) {
         this.gameObj = gameObj;
@@ -329,7 +347,7 @@ class Enemy extends GameObject {
                     e.state === EnemyState.DASH_KNOCK_BACK) {
                     this.state = EnemyState.DASH_KNOCK_BACK;
                     e.state = EnemyState.DASH_KNOCK_BACK;
-                    Camera.shake = 0.25;
+                    globalThis.cam.shake = 0.25;
                     globalThis.frameHalt = 5;
                     Player.attackSound.play();
                     Enemy.combo++;
@@ -558,7 +576,7 @@ Enemy.deathSound = new Howl({
 class Graphic extends PIXI.Graphics {
     constructor() {
         super();
-        Camera.stage.addChild(this);
+        globalThis.cam.stage.addChild(this);
     }
 }
 var Howl;
@@ -572,7 +590,7 @@ const gameOverSound = new Howl({
     src: ['./assets/audio/gameover.wav'],
     volume: 0.3
 });
-let cam = new Camera();
+var cam = new Camera();
 var player;
 let platform;
 let level = 0;
@@ -963,7 +981,7 @@ class Player extends GameObject {
                     if (this.state === PlayerState.DASH) {
                         Enemy.combo = 1;
                         e.sprite.angle = this.sprite.angle;
-                        Camera.shake = .5 * (this.velocity.mag / this.maxDashMag + 0.1);
+                        globalThis.cam.shake = .5 * (this.velocity.mag / this.maxDashMag + 0.1);
                         globalThis.frameHalt = 5;
                         e.velocity.set(Vector.mult(collisionVector, this.velocity.mag));
                         Player.attackSound.play();
@@ -976,7 +994,7 @@ class Player extends GameObject {
                     this.velocity.set(Vector.mult(collisionVector, -1));
                 }
                 else {
-                    Camera.shake = 0.35;
+                    globalThis.cam.shake = 0.35;
                     globalThis.frameHalt = 5;
                     this.velocity.set(Vector.mult(collisionVector, -this.knockBackMag));
                     e.velocity.set(Vector.mult(collisionVector, 1));
@@ -1015,7 +1033,7 @@ class Player extends GameObject {
         return this._r;
     }
     get screenPos() {
-        return this.sprite.getGlobalPosition();
+        return globalThis.cam.getScreenPos(this.sprite);
     }
     lookAt(x, y) {
         const p = this.screenPos;

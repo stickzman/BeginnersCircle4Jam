@@ -7,6 +7,6 @@ class Sprite extends PIXI.Sprite {
             this.height = height
         }
         this.pivot.set(this.width/2, this.height/2)
-        Camera.stage.addChild(this)
+        globalThis.cam.stage.addChild(this)
     }
 }

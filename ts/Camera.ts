@@ -3,7 +3,7 @@
 PIXI.settings.SORTABLE_CHILDREN = true
 
 class Camera {
-    static shake: number = 0 // Between 0 and 1
+    shake: number = 0 // Between 0 and 1
     private maxShakeOffset: number = 20
     private shakeDecrease = 0.02
 
@@ -11,8 +11,8 @@ class Camera {
     readonly width: number
     readonly height: number
 
-    static stage: PIXI.Container
 
+    stage: PIXI.Container
     private readonly rotationLayer: PIXI.Container
     private readonly UILayer: PIXI.Container
     private pos: Vector = new Vector(0, 0)
@@ -25,10 +25,10 @@ class Camera {
         this.width = this.renderer.width
         this.height = this.renderer.height
 
-        Camera.stage = new PIXI.Container()
+        this.stage = new PIXI.Container()
 
         this.rotationLayer = new PIXI.Container()
-        this.rotationLayer.addChild(Camera.stage)
+        this.rotationLayer.addChild(this.stage)
         this.rotationLayer.pivot.set(this.renderer.width/2, this.renderer.height/2)
         this.rotationLayer.x = this.renderer.width/2
         this.rotationLayer.y = this.renderer.height/2
@@ -42,7 +42,7 @@ class Camera {
 
     set x(x: number) {
         this.pos.x = x
-        Camera.stage.x = this.width/2 - x
+        this.stage.x = this.width/2 - x
     }
 
     get x(): number {
@@ -51,7 +51,7 @@ class Camera {
 
     set y(y: number) {
         this.pos.y = y
-        Camera.stage.y = this.height/2 - y
+        this.stage.y = this.height/2 - y
     }
 
     get y(): number {
@@ -64,6 +64,27 @@ class Camera {
 
     get angle(): number {
         return this.rotationLayer.angle
+    }
+
+    resize(width?: number, height?: number) {
+        const oldWidth = this.width
+        const oldHeight = this.height
+        if (width === undefined || height === undefined) {
+            const view = this.renderer.view.getBoundingClientRect()
+            width = view.width
+            height = view.height
+        }
+
+        this.renderer.resize(width, height)
+        this.UILayer.scale.set(width/oldWidth, height/oldHeight)
+    }
+
+    getScreenPos(sprite: PIXI.Sprite): PIXI.Point {
+        const p = sprite.getGlobalPosition()
+        const c = this.renderer.view.getBoundingClientRect()
+        p.x += c.left
+        p.y += c.top
+        return p
     }
 
     target(container: PIXI.Container) {
@@ -81,12 +102,12 @@ class Camera {
     }
 
     render() {
-        if (Camera.shake > 0) {
-            const offsetX = this.maxShakeOffset * Camera.shake**2 * (Math.random() * 2 - 1)
-            const offsetY = this.maxShakeOffset * Camera.shake**2 * (Math.random() * 2 - 1)
-            Camera.stage.x = this.x + this.width/2 - offsetX
-            Camera.stage.y = this.y + this.height/2 - offsetY
-            Camera.shake -= this.shakeDecrease
+        if (this.shake > 0) {
+            const offsetX = this.maxShakeOffset * this.shake**2 * (Math.random() * 2 - 1)
+            const offsetY = this.maxShakeOffset * this.shake**2 * (Math.random() * 2 - 1)
+            this.stage.x = this.x + this.width/2 - offsetX
+            this.stage.y = this.y + this.height/2 - offsetY
+            this.shake -= this.shakeDecrease
         }
         this.renderer.render(this.UILayer)
     }
