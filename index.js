@@ -317,8 +317,8 @@ class Enemy extends GameObject {
         this.combo = 1;
         this.aimSpeed = 0.05;
         this.chargeSpeed = 10;
-        this.dashMag = 400;
-        this.dashSpeed = 10;
+        this.dashMag = 30000;
+        this.dashSpeed = 750;
         this.restTime = 0;
         this.restStart = 0;
         this._r = 0;
@@ -340,11 +340,11 @@ class Enemy extends GameObject {
                 const faster = this.velocity.mag >= e.velocity.mag;
                 if (faster) {
                     e.velocity.set(Vector.mult(collisionVector, this.velocity.mag));
-                    this.velocity.set(Vector.mult(collisionVector, -1));
+                    this.velocity.set(Vector.mult(collisionVector, -75));
                 }
                 else {
                     this.velocity.set(Vector.mult(collisionVector, -e.velocity.mag));
-                    e.velocity.set(Vector.mult(collisionVector, 1));
+                    e.velocity.set(Vector.mult(collisionVector, 75));
                 }
                 if (this.state === EnemyState.DASH_KNOCK_BACK ||
                     e.state === EnemyState.DASH_KNOCK_BACK) {
@@ -383,7 +383,7 @@ class Enemy extends GameObject {
             if (col.gameObj.tag === "platform") {
                 if (Math.random() < 0.8 && (this.state === EnemyState.DASH ||
                     this.state === EnemyState.RECOVERY)) {
-                    this.velocity.normalize().mult(-5);
+                    this.velocity.normalize().mult(-375);
                     this.state = EnemyState.KNOCK_BACK;
                 }
                 else {
@@ -433,16 +433,16 @@ class Enemy extends GameObject {
     get rotation() {
         return this._rot;
     }
-    static update() {
+    static update(deltaTime) {
         for (const e of Enemy.enemies) {
             if (e.state === EnemyState.INACTIVE) {
                 e.destroy();
                 continue;
             }
-            e.update();
+            e.update(deltaTime);
         }
     }
-    update() {
+    update(deltaTime) {
         switch (this.state) {
             case EnemyState.DEAD: {
                 this.indicator.height = 0;
@@ -479,7 +479,7 @@ class Enemy extends GameObject {
                 else {
                     this.rotation -= this.aimSpeed;
                 }
-                if (this.indicator.height < this.dashMag + 50) {
+                if (this.indicator.height < this.dashMag / 75 + 50) {
                     this.indicator.height += this.chargeSpeed;
                 }
                 else if (angleAligned &&
@@ -495,7 +495,7 @@ class Enemy extends GameObject {
             case EnemyState.RECOVERY:
             case EnemyState.KNOCK_BACK: {
                 this.indicator.height = 0;
-                if (this.velocity.mag < 0.25) {
+                if (this.velocity.mag < 18) {
                     this.restStart = performance.now();
                     this.restTime = Math.random() * 2000;
                     this.state = EnemyState.REST;
@@ -511,8 +511,8 @@ class Enemy extends GameObject {
             }
             case EnemyState.DASH: {
                 this.sprite.width = 30;
-                this.x += this.velocity.x;
-                this.y += this.velocity.y;
+                this.x += this.velocity.x * deltaTime;
+                this.y += this.velocity.y * deltaTime;
                 if (Vector.dist(this.pos, this.dashEnd) < this.dashSpeed * 2) {
                     this.state = EnemyState.RECOVERY;
                 }
@@ -526,13 +526,13 @@ class Enemy extends GameObject {
         if (this.state !== EnemyState.DEAD) {
             this.sprite.width = 40 - (10 * (this.velocity.mag / this.dashSpeed));
         }
-        this.x += this.velocity.x;
-        this.y += this.velocity.y;
+        this.x += this.velocity.x * deltaTime;
+        this.y += this.velocity.y * deltaTime;
         this.velocity.x *= this.friction;
         this.velocity.y *= this.friction;
-        if (Math.abs(this.velocity.x) < 0.1)
+        if (Math.abs(this.velocity.x) < 7.5)
             this.velocity.x = 0;
-        if (Math.abs(this.velocity.y) < 0.1)
+        if (Math.abs(this.velocity.y) < 7.5)
             this.velocity.y = 0;
     }
     destroy() {
@@ -735,13 +735,13 @@ var PlayerState;
 class Player extends GameObject {
     constructor(radius = 15) {
         super("player");
-        this.speed = 3;
+        this.speed = 225;
         this.state = PlayerState.MOVE;
         this.pos = new Vector(0, 0);
         this.velocity = new Vector(0, 0);
-        this.friction = .9;
-        this.knockBackMag = 15;
-        this.maxDashMag = 40;
+        this.friction = 10;
+        this.knockBackMag = 1125;
+        this.maxDashMag = 3000;
         this.maxAimTime = 500;
         this.lives = 10;
         this.indicator = new Sprite(globalThis.spritesheet.textures["arrow.png"]);
@@ -783,7 +783,7 @@ class Player extends GameObject {
                     else {
                         Player.smallHitSound.play();
                     }
-                    this.velocity.set(Vector.mult(collisionVector, -1));
+                    this.velocity.set(Vector.mult(collisionVector, -75));
                 }
                 else {
                     globalThis.cam.shake = 0.35;
@@ -791,7 +791,7 @@ class Player extends GameObject {
                     if (this.state !== PlayerState.KNOCK_BACK) {
                         this.velocity.set(Vector.mult(collisionVector, -this.knockBackMag));
                     }
-                    e.velocity.set(Vector.mult(collisionVector, 1));
+                    e.velocity.set(Vector.mult(collisionVector, 75));
                     Player.hitSound.play();
                 }
                 this.state = PlayerState.KNOCK_BACK;
@@ -835,7 +835,7 @@ class Player extends GameObject {
         this.sprite.rotation = rotation;
         this.indicator.rotation = rotation;
     }
-    update() {
+    update(deltaTime) {
         switch (this.state) {
             case PlayerState.DEAD: {
                 this.radius -= 0.5;
@@ -891,7 +891,7 @@ class Player extends GameObject {
             }
             case PlayerState.KNOCK_BACK: {
                 this.indicator.height = 0;
-                if (this.velocity.mag < 0.5) {
+                if (this.velocity.mag < 37.5) {
                     this.state = PlayerState.MOVE;
                 }
                 break;
@@ -901,13 +901,14 @@ class Player extends GameObject {
             return;
         if (this.state !== PlayerState.DEAD)
             this.sprite.width = this.radius * 2 - ((this.radius + 5) * (this.velocity.mag / this.maxDashMag));
-        this.x += this.velocity.x;
-        this.y += this.velocity.y;
-        this.velocity.x *= this.friction;
-        this.velocity.y *= this.friction;
-        if (Math.abs(this.velocity.x) < 0.1)
+        this.x += this.velocity.x * deltaTime;
+        this.y += this.velocity.y * deltaTime;
+        const frictionRatio = 1 / (1 + deltaTime * this.friction);
+        this.velocity.x *= frictionRatio;
+        this.velocity.y *= frictionRatio;
+        if (Math.abs(this.velocity.x) < 7.5)
             this.velocity.x = 0;
-        if (Math.abs(this.velocity.y) < 0.1)
+        if (Math.abs(this.velocity.y) < 7.5)
             this.velocity.y = 0;
         if (this.state !== PlayerState.DEAD)
             player.lookAt(globalThis.mouseX, globalThis.mouseY);
@@ -967,6 +968,7 @@ let highScore = 0;
 if (localStorage)
     highScore = parseInt(localStorage.getItem("highscore")) || 0;
 let oldHighScore = 0;
+let lastTimestamp = 0;
 let scoreBoard;
 let highScoreBoard;
 let gameOverScreen;
@@ -1055,19 +1057,22 @@ WebFont.load({
     }
 });
 var frameID;
-function init(loader, resources) {
+function init(_, resources) {
     const sheet = resources["sheet"].spritesheet;
     globalThis.spritesheet = sheet;
     oldHighScore = highScore;
     platform = new Platform();
     player = new Player();
     Timer.start("tutorialStart");
+    lastTimestamp = performance.now();
     frameID = window.requestAnimationFrame(tutorialTick);
 }
-function tutorialTick() {
+function tutorialTick(timestamp) {
+    const deltaTime = (timestamp - lastTimestamp) / 1000;
+    lastTimestamp = timestamp;
     Tutorial.update();
     Collider.update();
-    player.update();
+    player.update(deltaTime);
     cam.render();
     if (Tutorial.running) {
         frameID = window.requestAnimationFrame(tutorialTick);
@@ -1078,7 +1083,9 @@ function tutorialTick() {
 }
 var frameHalt = 0;
 let gameOver = false;
-function tick() {
+function tick(timestamp) {
+    const deltaTime = (timestamp - lastTimestamp) / 1000;
+    lastTimestamp = timestamp;
     if (frameHalt > 0) {
         --frameHalt;
         frameID = window.requestAnimationFrame(tick);
@@ -1099,8 +1106,8 @@ function tick() {
         return;
     }
     Collider.update();
-    player.update();
-    Enemy.update();
+    player.update(deltaTime);
+    Enemy.update(deltaTime);
     if (Enemy.enemies.length === 0) {
         levelText.text = "Level\n" + ++level;
         Enemy.spawn(level);

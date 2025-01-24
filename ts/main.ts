@@ -25,6 +25,7 @@ var score = 0
 let highScore = 0
 if (localStorage) highScore = parseInt(localStorage.getItem("highscore")) || 0
 let oldHighScore = 0
+let lastTimestamp = 0
 
 let scoreBoard: PIXI.Text
 let highScoreBoard: PIXI.Text
@@ -120,7 +121,7 @@ WebFont.load({
 })
 
 var frameID: number
-function init(loader, resources) {
+function init(_, resources) {
     const sheet = resources["sheet"].spritesheet
     globalThis.spritesheet = sheet
 
@@ -136,13 +137,16 @@ function init(loader, resources) {
     // new Enemy(250, 0)
 
     Timer.start("tutorialStart")
-    frameID = window.requestAnimationFrame(tutorialTick)
+	lastTimestamp = performance.now()
+	frameID = window.requestAnimationFrame(tutorialTick)
 }
 
-function tutorialTick() {
+function tutorialTick(timestamp: DOMHighResTimeStamp) {
+	const deltaTime = (timestamp - lastTimestamp) / 1000
+	lastTimestamp = timestamp
     Tutorial.update()
     Collider.update()
-    player.update()
+	player.update(deltaTime)
     cam.render()
 
     if (Tutorial.running) {
@@ -154,7 +158,10 @@ function tutorialTick() {
 
 var frameHalt = 0
 let gameOver = false
-function tick() {
+function tick(timestamp: DOMHighResTimeStamp) {
+	const deltaTime = (timestamp - lastTimestamp) / 1000
+	lastTimestamp = timestamp
+
     if (frameHalt > 0) {
         --frameHalt
         frameID = window.requestAnimationFrame(tick)
@@ -177,8 +184,8 @@ function tick() {
     }
 
     Collider.update()
-    player.update()
-    Enemy.update()
+	player.update(deltaTime)
+	Enemy.update(deltaTime)
     if (Enemy.enemies.length === 0) {
         levelText.text = "Level\n" + ++level
         Enemy.spawn(level)

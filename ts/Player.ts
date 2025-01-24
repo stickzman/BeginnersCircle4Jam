@@ -10,15 +10,15 @@ enum PlayerState {
 class Player extends GameObject {
     sprite: PIXI.Sprite
     indicator: PIXI.Sprite
-    speed: number = 3
+    speed: number = 225
     collider: Collider
     state: PlayerState = PlayerState.MOVE
     pos = new Vector(0, 0)
     velocity = new Vector(0, 0)
-    friction: number = .9
-    knockBackMag: number = 15
+    friction: number = 10
+	knockBackMag: number = 1125
 
-    maxDashMag: number = 40
+	maxDashMag: number = 3000
     startAimTime: number
     maxAimTime: number = 500
 
@@ -85,7 +85,7 @@ class Player extends GameObject {
                         Player.smallHitSound.play()
                     }
                     // Player rebound velocity
-                    this.velocity.set(Vector.mult(collisionVector, -1))
+                    this.velocity.set(Vector.mult(collisionVector, -75))
 
                 } else {
                     globalThis.cam.shake = 0.35
@@ -94,7 +94,7 @@ class Player extends GameObject {
                         // Only add velocity if the player was not already hit
                         this.velocity.set(Vector.mult(collisionVector, -this.knockBackMag))
                     }
-                    e.velocity.set(Vector.mult(collisionVector, 1))
+					e.velocity.set(Vector.mult(collisionVector, 75))
                     Player.hitSound.play()
                 }
 
@@ -147,7 +147,7 @@ class Player extends GameObject {
         this.indicator.rotation = rotation
     }
 
-    update() {
+	update(deltaTime: DOMHighResTimeStamp) {
         switch (this.state) {
             case PlayerState.DEAD: {
                 // Shrink player (like they're falling)
@@ -207,7 +207,7 @@ class Player extends GameObject {
             }
             case PlayerState.KNOCK_BACK: {
                 this.indicator.height = 0
-                if (this.velocity.mag < 0.5) {
+				if (this.velocity.mag < 37.5) {
                     this.state = PlayerState.MOVE
                 }
                 break
@@ -221,14 +221,15 @@ class Player extends GameObject {
             this.sprite.width = this.radius*2 - ((this.radius+5) * (this.velocity.mag/this.maxDashMag))
 
         // Update position
-        this.x += this.velocity.x
-        this.y += this.velocity.y
+        this.x += this.velocity.x * deltaTime
+		this.y += this.velocity.y * deltaTime
 
         // Update velocity
-        this.velocity.x *= this.friction
-        this.velocity.y *= this.friction
-        if (Math.abs(this.velocity.x) < 0.1) this.velocity.x = 0
-        if (Math.abs(this.velocity.y) < 0.1) this.velocity.y = 0
+		const frictionRatio = 1 / (1 + deltaTime * this.friction)
+		this.velocity.x *= frictionRatio
+		this.velocity.y *= frictionRatio
+        if (Math.abs(this.velocity.x) < 7.5) this.velocity.x = 0
+        if (Math.abs(this.velocity.y) < 7.5) this.velocity.y = 0
 
         if (this.state !== PlayerState.DEAD)
             player.lookAt(globalThis.mouseX, globalThis.mouseY)
