@@ -61,8 +61,8 @@ class Enemy extends GameObject {
 	target: Vector
 
 	combo: number = 1
-	aimSpeed: number = 0.05
-	chargeSpeed: number = 10
+	aimSpeed: number = 3
+	chargeSpeed: number = 750
 	dashMag: number = 30000
 	dashSpeed: number = 750
 	dashEnd: Vector
@@ -213,8 +213,8 @@ class Enemy extends GameObject {
 			case EnemyState.DEAD: {
 				this.indicator.height = 0
 				// Shrink enemy (like they're falling)
-				this.radius -= 0.5
-				this.sprite.angle += 3
+				this.radius -= 37.5 * deltaTime
+				this.sprite.angle += 225 * deltaTime
 				if (this.radius <= 0) {
 					this.state = EnemyState.INACTIVE
 					Enemy.deathSound.play()
@@ -238,16 +238,16 @@ class Enemy extends GameObject {
 					rotClockwise = (diff < 0 && diff < Math.PI)
 				}
 
-				if (Math.abs(diff) < this.aimSpeed) {
+				if (Math.abs(diff) < this.aimSpeed * deltaTime) {
 					angleAligned = true
 				} else if (rotClockwise) {
-					this.rotation += this.aimSpeed
+					this.rotation += this.aimSpeed * deltaTime
 				} else {
-					this.rotation -= this.aimSpeed
+					this.rotation -= this.aimSpeed * deltaTime
 				}
 				// Pull back bow
 				if (this.indicator.height < this.dashMag / 75 + 50) {
-					this.indicator.height += this.chargeSpeed
+					this.indicator.height += this.chargeSpeed * deltaTime
 				} else if (angleAligned &&
 					globalThis.player.state !== PlayerState.KNOCK_BACK) {
 					// Enter dash
